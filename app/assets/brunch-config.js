@@ -37,7 +37,7 @@ exports.config = {
   // Phoenix paths configuration
   paths: {
     // Dependencies and current project directories to watch
-    watched: ["static", "css", "js", "vendor"],
+    watched: ["static", "css", "js", "vendor", "elm"],
     // Where to compile files to
     public: "../priv/static"
   },
@@ -45,8 +45,13 @@ exports.config = {
   // Configure your plugins
   plugins: {
     babel: {
-      // Do not use ES6 compiler in vendor code
-      ignore: [/vendor/]
+    //   Do not use ES6 compiler in vendor code
+      ignore: [/vendor/, /main/]
+    },
+    elmBrunch: {
+      mainModules: ['elm/Main.elm'],
+      outputFolder: '../assets/js',
+      makeParameters: ['--debug']
     }
   },
 

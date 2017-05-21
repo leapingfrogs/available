@@ -1,0 +1,196 @@
+body {
+    font-family: 'Source Sans Pro', 'Trebuchet MS', 'Lucida Grande', 'Bitstream Vera Sans', 'Helvetica Neue', sans-serif;
+    margin: 0;
+    background-color: whitesmoke;
+}
+
+.app {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+}
+
+img {
+    margin: 20px 0;
+}
+
+.app {
+    display: flex;
+    flex-direction: column;
+}
+
+.header {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 1.5rem;
+    overflow: hidden;
+    opacity: 0.8;
+    display: flex;
+    background-color: slategray;
+    color: whitesmoke;
+    font-size: 1.5rem;
+    padding: 0.5rem;
+    border-bottom: 1px solid darkslategray;
+}
+
+.header div {
+    flex: 1;
+}
+
+.header .title {
+    text-align: left;
+    color: maroon;
+}
+
+.header .title.connected {
+    color: green;
+}
+
+.header .time {
+    text-align: center;
+}
+
+.header .user {
+    text-align: right;
+}
+
+.login {
+    display: flex;
+    margin: auto auto;
+    align-items: center;
+    flex-direction: row;
+}
+
+.login div {
+    display: flex;
+    padding: 0.1rem;
+    flex: 1 0 auto;
+}
+
+.login div button {
+    flex: 1 0 auto;
+}
+
+.login div label {
+    padding-right: 0.1rem;
+    text-align: right;
+    flex: 1;
+}
+
+.user {
+    display: flex;
+}
+
+.user img {
+    padding: 0;
+    margin: 0 0 0 0.5rem;
+    flex: 0 1 auto;
+    border-radius: 50%;
+    border: 1px solid whitesmoke;
+}
+
+.user div {
+    flex: 1 0;
+}
+
+.content {
+    padding-top: -2.5rem;
+    margin-top: 2.5rem;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.timezones {
+    display: flex;
+    flex: 1 0 auto;
+    overflow: scroll;
+}
+
+.timezones div {
+    display: flex;
+    flex-direction: column;
+}
+
+.zone {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    margin: 0.5rem 0;
+    border-left: 1px dashed lightblue;
+    border-right: 1px dashed lightblue;
+}
+
+.zone div {
+    display: flex;
+    flex-direction: column;
+    flex: 1 0 auto;
+}
+
+.timezone {
+    font-weight: bold;
+    text-align: center;
+    margin: auto auto;
+    flex: 0 0 auto;
+    padding: 0.5rem 0;
+}
+
+.person {
+    margin: 0;
+    padding: 0.25rem;
+}
+
+.person img {
+    border-radius: 50%;
+    margin: auto auto;
+    border: 4px solid white;
+}
+
+.person.available img {
+    border: 4px solid limegreen;
+}
+
+.person.away img {
+    border: 4px solid slategray;
+}
+
+.person.meeting img {
+    border: 4px solid crimson;
+}
+.person.not_working img {
+    border: 4px solid slategray;
+}
+
+.person.not_working {
+    opacity: 0.25;
+}
+
+.person.shown img {
+    border: 4px solid cornflowerblue;
+}
+
+.person.shown .name {
+    visibility: visible;
+}
+
+.person .name {
+    visibility: hidden;
+    text-align: center;
+    pointer-events: none;
+    margin: auto auto;
+    margin-top: -2rem;
+    padding-bottom: 2rem;
+    height: 0;
+    /*padding: 0.5rem;*/
+    font-size: 0.8rem;
+    text-shadow: 0 0 3px black;
+    color: white;
+}
+
+.error {
+    color: red;
+}

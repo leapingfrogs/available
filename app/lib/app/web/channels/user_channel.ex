@@ -18,19 +18,11 @@ defmodule App.Web.UserChannel do
     {:reply, {:ok, payload}, socket}
   end
   def handle_in("load:data", payload, socket) do
-    colleagues = [
-       %{ :name => "Tereza Sokol",
-          :email => "tereza@noredink.com",
-          :location => "Paris, France",
-          :timezone => "Europe/Paris",
-          :workingHours =>
-            %{ :timezone => "Europe/Copenhagen",
-               :blocks => [ %{ :start => [19, 1], :end => [20, 0] } ]
-             },
-           :displayName => false
-        }
-    ]
-    {:reply, {:ok, %{:colleagues => colleagues}}, socket}
+    colleagues = App.Colleagues.list_users()
+    |> (Enum.map &user2Model/1)
+    :ok = push socket, "data", %{:colleagues => colleagues}
+
+    {:noreply, socket}
   end
 
   # It is also common to receive messages from the client and
@@ -43,5 +35,19 @@ defmodule App.Web.UserChannel do
   # Add authorization logic here as required.
   defp authorized?(_payload) do
     true
+  end
+
+  defp user2Model(user) do
+    %{ name: user.name,
+       email: user.email,
+       location: user.location,
+       timezone: user.timezone,
+       workingHours: %{ timezone: "Europe/London",
+                        blocks: [ %{ start: %{ hour: 19, minute: 1},
+                                     end: %{hour: 20, minute: 0}
+                                   }
+                                ]
+                      }
+     }
   end
 end

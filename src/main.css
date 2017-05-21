@@ -45,6 +45,7 @@ img {
   text-align: left;
   color: maroon;
 }
+
 .header .title.connected {
   color: green;
 }
@@ -55,6 +56,29 @@ img {
 
 .header .user {
   text-align: right;
+}
+
+.login {
+  display: flex;
+  margin: auto auto;
+  align-items: center;
+  flex-direction: row;
+}
+
+.login div {
+  display: flex;
+  padding: 0.1rem;
+  flex: 1 0 auto;
+}
+
+.login div button {
+  flex: 1 0 auto;
+}
+
+.login div label {
+  padding-right: 0.1rem;
+  text-align: right;
+  flex: 1;
 }
 
 .user {

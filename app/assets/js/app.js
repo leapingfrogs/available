@@ -18,4 +18,11 @@
 // Local files can be imported directly using relative
 // paths "./socket" or full ones "web/static/js/socket".
 
+
 // import socket from "./socket"
+// require('../css/app.css');
+var Elm = require('./main.js');
+
+var root = document.getElementById('root');
+
+Elm.App.embed(root);
