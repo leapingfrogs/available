@@ -8,6 +8,7 @@
   "dependencies": {
     "elm": "^0.18.0",
     "elm-brunch": "^0.8.0",
+    "elm-localstorage-ports": "^0.1.1",
     "phoenix": "file:../deps/phoenix"
   },
   "devDependencies": {

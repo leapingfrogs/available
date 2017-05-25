@@ -24,5 +24,6 @@
 var Elm = require('./main.js');
 
 var root = document.getElementById('root');
-
-Elm.App.embed(root);
+var myElmApp = Elm.App.embed(root);
+var localStoragePorts = require("elm-localstorage-ports");
+localStoragePorts.register(myElmApp.ports);

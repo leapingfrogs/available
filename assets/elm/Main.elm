@@ -12,6 +12,7 @@ import MD5
 import Phoenix.Channel
 import Phoenix.Push
 import Phoenix.Socket
+import Ports.LocalStorage as LocalStorage
 import Time exposing (Time)
 import Time.DateTime as DateTime exposing (DateTime)
 import Time.TimeZone as TimeZone exposing (TimeZone, name)
@@ -33,37 +34,38 @@ avatarType =
 
 
 type View
-    = LoginView
-    | SignupView
-    | ColleaguesView
+    = LoginView LoginModel
+    | SignupView SignupModel
+    | ColleaguesView ColleagueModel
 
 
 type alias Model =
     { currentView : View
     , currentUser : Maybe Person
-    , loginForm : LoginForm
-    , signupForm : SignupForm
     , now : Maybe DateTime
-    , colleagues : List Person
     , connected : Bool
     , phxSocket : Phoenix.Socket.Socket Msg
     }
 
 
-type alias LoginForm =
+type alias LoginModel =
     { email : String
     , password : String
     , error : String
     }
 
 
-type alias SignupForm =
+type alias SignupModel =
     { email : String
     , location : String
     , name : String
     , timezone : String
     , error : String
     }
+
+
+type alias ColleagueModel =
+    { colleagues : List Person }
 
 
 type alias Person =
@@ -210,18 +212,11 @@ initPhxSocket =
 
 initModel : Model
 initModel =
-    let
-        user =
-            Nothing
-    in
     { phxSocket = initPhxSocket
     , connected = False
     , now = Nothing
-    , currentUser = user
-    , currentView = LoginView
-    , colleagues = []
-    , loginForm = { email = "", password = "", error = "" }
-    , signupForm = { email = "", location = "", name = "", timezone = "", error = "" }
+    , currentUser = Nothing
+    , currentView = LoginView (LoginModel "" "" "")
     }
 
 
@@ -242,8 +237,7 @@ type SignupField
 
 
 type Msg
-    = NoOp
-    | ShowDetail Bool Person
+    = ShowDetail Bool Person
     | Tick Time
     | LoadData Encode.Value
     | ToggleChannel Bool
@@ -259,11 +253,15 @@ type Msg
     | HandleSignupRequest (Result Http.Error Person)
 
 
+
+--    | ReceiveFromLocalStorage ( LocalStorage.Key, LocalStorage.Value )
+
+
 connect : Model -> ( Model, Cmd Msg )
 connect model =
     case model.currentUser of
         Nothing ->
-            ( model, Cmd.none )
+            model ! []
 
         Just user ->
             let
@@ -277,45 +275,63 @@ connect model =
                     Phoenix.Socket.join channel
                         (Phoenix.Socket.on "data" ("user:" ++ user.email) LoadData model.phxSocket)
             in
-            ( { model | phxSocket = phxSocket }, Cmd.map PhoenixMsg phxCmd )
+            { model | phxSocket = phxSocket } ! [ Cmd.map PhoenixMsg phxCmd, LocalStorage.storageSetItem ( "currentUser", Encode.string user.email ) ]
+
+
+findUser : Model -> ( Model, Cmd Msg )
+findUser model =
+    model ! [ LocalStorage.storageGetItem "currentUser" ]
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Tick time ->
-            ( { model | now = Just (DateTime.fromTimestamp time) }, Cmd.none )
+            let
+                debug =
+                    Debug.log "View: " model.currentView
+            in
+            { model | now = Just (DateTime.fromTimestamp time) } ! []
 
         ShowDetail show person ->
-            ( { model
-                | colleagues =
-                    List.map
-                        (\colleague ->
-                            if person == colleague then
-                                { colleague | displayName = show }
-                            else
-                                colleague
-                        )
-                        model.colleagues
-              }
-            , Cmd.none
-            )
+            case model.currentView of
+                ColleaguesView colleaguesModel ->
+                    { model
+                        | currentView =
+                            ColleaguesView
+                                { colleagues =
+                                    List.map
+                                        (\colleague ->
+                                            if person == colleague then
+                                                { colleague | displayName = show }
+                                            else
+                                                colleague
+                                        )
+                                        colleaguesModel.colleagues
+                                }
+                    }
+                        ! []
 
-        NoOp ->
-            ( model, Cmd.none )
+                _ ->
+                    model ! []
 
         LoadData raw ->
-            case Decode.decodeValue colleagueListDecoder raw of
-                Ok colleagueData ->
-                    ( { model | colleagues = colleagueData.colleagues }, Cmd.none )
+            case model.currentView of
+                ColleaguesView colleaguesModel ->
+                    case Decode.decodeValue colleagueListDecoder raw of
+                        Ok colleagueData ->
+                            { model | currentView = ColleaguesView colleagueData } ! []
 
-                Err error ->
-                    ( { model | colleagues = demoColleagues }, Cmd.none )
+                        Err error ->
+                            { model | currentView = ColleaguesView { colleagues = demoColleagues } } ! []
+
+                _ ->
+                    model ! []
 
         ToggleChannel connected ->
             case model.currentUser of
                 Nothing ->
-                    ( model, Cmd.none )
+                    model ! []
 
                 Just user ->
                     case connected of
@@ -324,9 +340,8 @@ update msg model =
                                 ( phxSocket, phxCmd ) =
                                     Phoenix.Socket.leave ("user:" ++ user.email) model.phxSocket
                             in
-                            ( { model | phxSocket = phxSocket }
-                            , Cmd.map PhoenixMsg phxCmd
-                            )
+                            { model | phxSocket = phxSocket }
+                                ! [ Cmd.map PhoenixMsg phxCmd ]
 
                         False ->
                             connect model
@@ -334,7 +349,7 @@ update msg model =
         Joined ->
             case model.currentUser of
                 Nothing ->
-                    ( model, Cmd.none )
+                    model ! []
 
                 Just user ->
                     let
@@ -348,169 +363,146 @@ update msg model =
                         ( phxSocket, phxCmd ) =
                             Phoenix.Socket.push push_ model.phxSocket
                     in
-                    ( { model
+                    { model
                         | connected = True
                         , phxSocket = phxSocket
-                      }
-                    , Cmd.map PhoenixMsg phxCmd
-                    )
+                    }
+                        ! [ Cmd.map PhoenixMsg phxCmd ]
 
         Closed ->
-            ( { model | colleagues = demoColleagues, connected = False }, Cmd.none )
+            case model.currentView of
+                ColleaguesView { colleagues } ->
+                    { model | currentView = ColleaguesView { colleagues = demoColleagues }, connected = False } ! []
+
+                _ ->
+                    model ! []
 
         PhoenixMsg msg ->
             let
                 ( phxSocket, phxCmd ) =
                     Phoenix.Socket.update msg model.phxSocket
             in
-            ( { model | phxSocket = phxSocket }
-            , Cmd.map PhoenixMsg phxCmd
-            )
+            { model | phxSocket = phxSocket }
+                ! [ Cmd.map PhoenixMsg phxCmd ]
 
         SignUp ->
-            ( model, performSignupRequest model.signupForm )
+            case model.currentView of
+                SignupView signupModel ->
+                    model ! [ performSignupRequest signupModel ]
+
+                _ ->
+                    model ! []
 
         Login ->
-            ( model, performLoginRequest model.loginForm )
+            case model.currentView of
+                LoginView loginModel ->
+                    model ! [ performLoginRequest loginModel ]
 
-        --            let
-        --                user =
-        --                    { name = "Ian Davies"
-        --                    , email = model.loginEmail
-        --                    , location = "Stirling, Scotland"
-        --                    , timezone = "Europe/London"
-        --                    , workingHours =
-        --                        { timezone = "Europe/London"
-        --                        , blocks =
-        --                            [ { start = (SimpleTime 9 30), end = (SimpleTime 14 30) }
-        --                            , { start = (SimpleTime 15 0), end = (SimpleTime 18 1) }
-        --                            ]
-        --                        }
-        --                    , displayName = False
-        --                    }
-        --            in
+                _ ->
+                    model ! []
+
         SelectView view ->
-            ( { model
+            { model
                 | currentView = view
-              }
-            , Cmd.none
-            )
+            }
+                ! []
 
         HandleLoginRequest (Ok user) ->
             connect
                 { model
                     | currentUser = Just user
-                    , currentView = ColleaguesView
+                    , currentView = ColleaguesView { colleagues = [] }
                 }
 
         HandleLoginRequest (Err message) ->
-            let
-                loginForm =
-                    model.loginForm
-            in
-            ( { model
-                | loginForm =
-                    { loginForm | error = "Login failed" }
-              }
-            , Cmd.none
-            )
+            case model.currentView of
+                LoginView { email, password, error } ->
+                    { model
+                        | currentView = LoginView { email = email, password = password, error = "Login failed" }
+                    }
+                        ! []
+
+                _ ->
+                    model ! []
 
         HandleSignupRequest (Ok user) ->
             connect
                 { model
                     | currentUser = Just user
-                    , currentView = ColleaguesView
+                    , currentView = ColleaguesView { colleagues = [] }
                 }
 
         HandleSignupRequest (Err message) ->
-            let
-                signupForm =
-                    model.signupForm
-            in
-            ( { model
-                | signupForm =
-                    { signupForm | error = "Signup failed" }
-              }
-            , Cmd.none
-            )
+            case model.currentView of
+                SignupView { email, location, name, timezone, error } ->
+                    { model
+                        | currentView = SignupView { email = email, location = location, name = name, timezone = timezone, error = "Signup failed" }
+                    }
+                        ! []
+
+                _ ->
+                    model ! []
 
         UpdateLogin field value ->
-            let
-                loginForm =
-                    model.loginForm
-            in
-            case field of
-                LoginEmail ->
-                    ( { model
-                        | loginForm =
-                            { loginForm
-                                | email = value
-                                , error = ""
+            case model.currentView of
+                LoginView { email, password, error } ->
+                    case field of
+                        LoginEmail ->
+                            { model
+                                | currentView = LoginView { email = value, password = password, error = error }
                             }
-                      }
-                    , Cmd.none
-                    )
+                                ! []
 
-                LoginPassword ->
-                    ( { model
-                        | loginForm =
-                            { loginForm
-                                | password = value
-                                , error = ""
+                        LoginPassword ->
+                            { model
+                                | currentView = LoginView { email = email, password = value, error = error }
                             }
-                      }
-                    , Cmd.none
-                    )
+                                ! []
+
+                _ ->
+                    model ! []
 
         UpdateSignup field value ->
-            let
-                signupForm =
-                    model.signupForm
-            in
-            case field of
-                SignupEmail ->
-                    ( { model
-                        | signupForm =
-                            { signupForm
-                                | email = value
-                                , error = ""
+            case model.currentView of
+                SignupView { email, location, name, timezone, error } ->
+                    case field of
+                        SignupEmail ->
+                            { model
+                                | currentView = SignupView { email = value, location = location, name = name, timezone = timezone, error = error }
                             }
-                      }
-                    , Cmd.none
-                    )
+                                ! []
 
-                SignupLocation ->
-                    ( { model
-                        | signupForm =
-                            { signupForm
-                                | location = value
-                                , error = ""
+                        SignupLocation ->
+                            { model
+                                | currentView = SignupView { email = email, location = value, name = name, timezone = timezone, error = error }
                             }
-                      }
-                    , Cmd.none
-                    )
+                                ! []
 
-                SignupName ->
-                    ( { model
-                        | signupForm =
-                            { signupForm
-                                | name = value
-                                , error = ""
+                        SignupName ->
+                            { model
+                                | currentView = SignupView { email = email, location = location, name = value, timezone = timezone, error = error }
                             }
-                      }
-                    , Cmd.none
-                    )
+                                ! []
 
-                SignupTimezone ->
-                    ( { model
-                        | signupForm =
-                            { signupForm
-                                | timezone = value
-                                , error = ""
+                        SignupTimezone ->
+                            { model
+                                | currentView = SignupView { email = email, location = location, name = name, timezone = value, error = error }
                             }
-                      }
-                    , Cmd.none
-                    )
+                                ! []
+
+                _ ->
+                    model ! []
+
+
+
+--                ReceiveFromLocalStorage ( "currentUser", jsonValue ) ->
+--                    case Decode.decodeValue Decode.string jsonValue of
+--                        Ok value ->
+--                            let
+--                                debug =
+--                                    Debug.log "Found User: " value
+--                            in
+--                            model ! []
 
 
 type RequestOperation
@@ -518,7 +510,7 @@ type RequestOperation
     | SignUpOperation
 
 
-performLoginRequest : LoginForm -> Cmd Msg
+performLoginRequest : LoginModel -> Cmd Msg
 performLoginRequest loginForm =
     let
         url =
@@ -537,7 +529,7 @@ performLoginRequest loginForm =
     Http.send HandleLoginRequest request
 
 
-performSignupRequest : SignupForm -> Cmd Msg
+performSignupRequest : SignupModel -> Cmd Msg
 performSignupRequest signup =
     let
         url =
@@ -586,37 +578,35 @@ type alias ViewModel =
     }
 
 
-signupView : Model -> Html Msg
+signupView : SignupModel -> Html Msg
 signupView model =
     div [ class "app" ]
         [ div [ class "header" ]
-            [ div [ classList [ ( "title", True ), ( "connected", model.connected ) ] ]
-                [ div [ onClick (ToggleChannel model.connected) ] [ text "Who's Available?" ]
-                ]
+            [ div [ class "title" ] []
             ]
         , div [ class "content" ]
             [ div [ class "login" ]
                 [ fieldset []
                     [ div []
                         [ label [ for "email" ] [ text "Email" ]
-                        , input [ onInput (UpdateSignup SignupEmail), type_ "text", Html.Attributes.name "email", Html.Attributes.value model.signupForm.email, placeholder "someone@somewhere.com" ] []
+                        , input [ onInput (UpdateSignup SignupEmail), type_ "text", Html.Attributes.name "email", Html.Attributes.value model.email, placeholder "someone@somewhere.com" ] []
                         ]
                     , div []
                         [ label [ for "name" ] [ text "Name" ]
-                        , input [ onInput (UpdateSignup SignupName), type_ "text", Html.Attributes.name "name", Html.Attributes.value model.signupForm.name, placeholder "Full Name" ] []
+                        , input [ onInput (UpdateSignup SignupName), type_ "text", Html.Attributes.name "name", Html.Attributes.value model.name, placeholder "Full Name" ] []
                         ]
                     , div []
                         [ label [ for "location" ] [ text "Location" ]
-                        , input [ onInput (UpdateSignup SignupLocation), type_ "text", Html.Attributes.name "location", Html.Attributes.value model.signupForm.location, placeholder "location" ] []
+                        , input [ onInput (UpdateSignup SignupLocation), type_ "text", Html.Attributes.name "location", Html.Attributes.value model.location, placeholder "location" ] []
                         ]
                     , div []
                         [ label [ for "timezone" ] [ text "Timezone" ]
-                        , input [ onInput (UpdateSignup SignupTimezone), type_ "text", Html.Attributes.name "timezone", Html.Attributes.value model.signupForm.timezone, placeholder "Utc" ] []
+                        , input [ onInput (UpdateSignup SignupTimezone), type_ "text", Html.Attributes.name "timezone", Html.Attributes.value model.timezone, placeholder "Utc" ] []
                         ]
                     , div [ class "error" ]
-                        [ text model.signupForm.error ]
+                        [ text model.error ]
                     , div []
-                        [ button [ onClick (SelectView LoginView) ] [ text "Login" ]
+                        [ button [ onClick (SelectView (LoginView (LoginModel model.email "" ""))) ] [ text "Login" ]
                         , button [ onClick SignUp ] [ text "Sign Up" ]
                         ]
                     ]
@@ -625,30 +615,28 @@ signupView model =
         ]
 
 
-loginView : Model -> Html Msg
+loginView : LoginModel -> Html Msg
 loginView model =
     div [ class "app" ]
         [ div [ class "header" ]
-            [ div [ classList [ ( "title", True ), ( "connected", model.connected ) ] ]
-                [ div [ onClick (ToggleChannel model.connected) ] [ text "Who's Available?" ]
-                ]
+            [ div [ class "title" ] []
             ]
         , div [ class "content" ]
             [ div [ class "login" ]
                 [ fieldset []
                     [ div []
                         [ label [ for "email" ] [ text "Email" ]
-                        , input [ onInput (UpdateLogin LoginEmail), type_ "text", Html.Attributes.name "email", Html.Attributes.value model.loginForm.email, placeholder "someone@somewhere.com" ] []
+                        , input [ onInput (UpdateLogin LoginEmail), type_ "text", Html.Attributes.name "email", Html.Attributes.value model.email, placeholder "someone@somewhere.com" ] []
                         ]
                     , div []
                         [ label [ for "password" ] [ text "Password" ]
-                        , input [ onInput (UpdateLogin LoginPassword), type_ "password", Html.Attributes.name "password", Html.Attributes.value model.loginForm.password, placeholder "password" ] []
+                        , input [ onInput (UpdateLogin LoginPassword), type_ "password", Html.Attributes.name "password", Html.Attributes.value model.password, placeholder "password" ] []
                         ]
                     , div [ class "error" ]
-                        [ text model.loginForm.error ]
+                        [ text model.error ]
                     , div []
                         [ button [ onClick Login ] [ text "Login" ]
-                        , button [ onClick (SelectView SignupView) ] [ text "Sign Up" ]
+                        , button [ onClick (SelectView (SignupView (SignupModel model.email "" "" "" ""))) ] [ text "Sign Up" ]
                         ]
                     ]
                 ]
@@ -659,18 +647,18 @@ loginView model =
 view : Model -> Html Msg
 view model =
     case model.currentView of
-        LoginView ->
-            loginView model
+        LoginView loginModel ->
+            loginView loginModel
 
-        SignupView ->
-            signupView model
+        SignupView signupModel ->
+            signupView signupModel
 
-        ColleaguesView ->
-            colleagueView model
+        ColleaguesView colleagueModel ->
+            colleagueView model colleagueModel
 
 
-colleagueView : Model -> Html Msg
-colleagueView model =
+colleagueView : Model -> ColleagueModel -> Html Msg
+colleagueView model colleagueModel =
     let
         maybeViewModel =
             modelToView model
@@ -701,7 +689,7 @@ colleagueView model =
                 , div [ class "content" ]
                     [ div [ class "timezones" ]
                         (List.map
-                            (zoneColumn viewModel.localtime model.colleagues)
+                            (zoneColumn viewModel.localtime colleagueModel.colleagues)
                             offsets
                         )
                     ]
@@ -832,27 +820,32 @@ formatTimeZone time timezone =
 
 modelToView : Model -> Maybe ViewModel
 modelToView model =
-    case model.currentUser of
-        Nothing ->
+    case model.currentView of
+        ColleaguesView colleaguesModel ->
+            case model.currentUser of
+                Nothing ->
+                    Nothing
+
+                Just user ->
+                    let
+                        timezones =
+                            colleaguesModel.colleagues
+                                |> List.map .timezone
+                                |> List.map resolveTimezone
+
+                        userTimezone =
+                            resolvedTimezone (resolveTimezone user.timezone)
+                    in
+                    Just
+                        { userName = user.name
+                        , userEmail = user.email
+                        , userTimezone = userTimezone
+                        , localtime = localtime userTimezone model.now
+                        , timezones = timezones
+                        }
+
+        _ ->
             Nothing
-
-        Just user ->
-            let
-                timezones =
-                    model.colleagues
-                        |> List.map .timezone
-                        |> List.map resolveTimezone
-
-                userTimezone =
-                    resolvedTimezone (resolveTimezone user.timezone)
-            in
-            Just
-                { userName = user.name
-                , userEmail = user.email
-                , userTimezone = userTimezone
-                , localtime = localtime userTimezone model.now
-                , timezones = timezones
-                }
 
 
 localtime : TimeZone -> Maybe DateTime -> ZonedDateTime
@@ -909,14 +902,19 @@ gravatarUrl email =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.batch [ Time.every Time.second Tick, Phoenix.Socket.listen model.phxSocket PhoenixMsg ]
+    Sub.batch
+        [ Time.every Time.second Tick
+        , Phoenix.Socket.listen model.phxSocket PhoenixMsg
+
+        --        , LocalStorage.storageGetItemResponse ReceiveFromLocalStorage
+        ]
 
 
 main : Program Never Model Msg
 main =
     Html.program
         { view = view
-        , init = connect initModel
+        , init = findUser initModel
         , update = update
         , subscriptions = subscriptions
         }
