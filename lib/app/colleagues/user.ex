@@ -6,6 +6,7 @@ defmodule App.Colleagues.User do
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
+  @timestamps_opts [usec: Mix.env != :test]
   schema "colleagues_users" do
     field :email, :string
     field :location, :string
