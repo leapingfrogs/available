@@ -29,6 +29,11 @@ apiRoot =
     "http://localhost:4000/api"
 
 
+webSocket : String
+webSocket =
+    "ws://localhost:4000/socket/websocket"
+
+
 avatarSize : Int
 avatarSize =
     100
@@ -49,7 +54,6 @@ type alias Model =
     { currentView : View
     , currentUser : Maybe Person
     , now : Maybe DateTime
-    , connected : Bool
     , phxSocket : Phoenix.Socket.Socket Msg
     }
 
@@ -212,14 +216,13 @@ demoColleagues =
 
 initPhxSocket : Phoenix.Socket.Socket Msg
 initPhxSocket =
-    Phoenix.Socket.init "ws://localhost:4000/socket/websocket"
+    Phoenix.Socket.init webSocket
         |> Phoenix.Socket.withDebug
 
 
 initModel : Model
 initModel =
     { phxSocket = initPhxSocket
-    , connected = False
     , now = Nothing
     , currentUser = Nothing
     , currentView = LoginView (LoginModel "" "" "")
@@ -246,8 +249,9 @@ type Msg
     = ShowDetail Bool Person
     | Tick Time
     | LoadData Encode.Value
-    | Joined
-    | Closed
+    | AddColleague Encode.Value
+    | Joined String
+    | Closed String
     | UpdateLogin LoginField String
     | UpdateSignup SignupField String
     | Login
@@ -260,6 +264,14 @@ type Msg
     | Logout
 
 
+join : String -> Phoenix.Channel.Channel Msg
+join channel =
+    Phoenix.Channel.init channel
+        |> Phoenix.Channel.withPayload (Encode.object [])
+        |> Phoenix.Channel.onJoin (always (Joined channel))
+        |> Phoenix.Channel.onClose (always (Closed channel))
+
+
 connect : Model -> ( Model, Cmd Msg )
 connect model =
     case model.currentUser of
@@ -268,17 +280,23 @@ connect model =
 
         Just user ->
             let
-                channel =
-                    Phoenix.Channel.init ("user:" ++ user.email)
-                        |> Phoenix.Channel.withPayload (Encode.object [])
-                        |> Phoenix.Channel.onJoin (always Joined)
-                        |> Phoenix.Channel.onClose (always Closed)
+                companyChannel =
+                    join <| "user:all"
 
-                ( phxSocket, phxCmd ) =
-                    Phoenix.Socket.join channel
-                        (Phoenix.Socket.on "data" ("user:" ++ user.email) LoadData model.phxSocket)
+                channel =
+                    join <| "user:" ++ user.email
+
+                ( phxSocketCompany, phxCmdCompany ) =
+                    model.phxSocket
+                        |> Phoenix.Socket.on "data" ("user:" ++ user.email) LoadData
+                        |> Phoenix.Socket.join companyChannel
+
+                ( phxSocketUser, phxCmdUser ) =
+                    phxSocketCompany
+                        |> Phoenix.Socket.on "new:colleague" "user:all" AddColleague
+                        |> Phoenix.Socket.join channel
             in
-            { model | phxSocket = phxSocket } ! [ Cmd.map PhoenixMsg phxCmd, LocalStorage.storageSetItem ( "currentUser", Encode.string user.email ) ]
+            { model | phxSocket = phxSocketUser } ! [ Cmd.map PhoenixMsg phxCmdCompany, Cmd.map PhoenixMsg phxCmdUser, LocalStorage.storageSetItem ( "currentUser", Encode.string user.email ) ]
 
 
 findUser : Model -> ( Model, Cmd Msg )
@@ -302,7 +320,6 @@ update msg model =
             { model
                 | currentView = LoginView { email = "", password = "", error = "" }
                 , currentUser = Nothing
-                , connected = False
                 , phxSocket = phxSocket
             }
                 ! [ Cmd.map PhoenixMsg phxCmd, LocalStorage.storageClear () ]
@@ -345,7 +362,37 @@ update msg model =
                 _ ->
                     model ! []
 
-        Joined ->
+        AddColleague raw ->
+            case model.currentView of
+                ColleaguesView colleaguesModel ->
+                    case Decode.decodeValue colleagueListDecoder raw of
+                        Ok colleagueData ->
+                            { model | currentView = ColleaguesView { colleagues = colleaguesModel.colleagues ++ colleagueData.colleagues } } ! []
+
+                        Err error ->
+                            { model | currentView = ColleaguesView { colleagues = demoColleagues } } ! []
+
+                _ ->
+                    model ! []
+
+        Joined "user:all" ->
+            let
+                debug =
+                    Debug.log "Joined Channel" "user:all"
+            in
+            case model.currentUser of
+                Nothing ->
+                    model ! []
+
+                Just user ->
+                    model
+                        ! []
+
+        Joined userChannel ->
+            let
+                debug =
+                    Debug.log "Joined Channel" userChannel
+            in
             case model.currentUser of
                 Nothing ->
                     model ! []
@@ -356,25 +403,23 @@ update msg model =
                             Encode.object []
 
                         push_ =
-                            Phoenix.Push.init "load:data" ("user:" ++ user.email)
+                            Phoenix.Push.init "load:data" userChannel
                                 |> Phoenix.Push.withPayload payload
 
                         ( phxSocket, phxCmd ) =
                             Phoenix.Socket.push push_ model.phxSocket
                     in
                     { model
-                        | connected = True
-                        , phxSocket = phxSocket
+                        | phxSocket = phxSocket
                     }
                         ! [ Cmd.map PhoenixMsg phxCmd ]
 
-        Closed ->
-            case model.currentView of
-                ColleaguesView { colleagues } ->
-                    { model | currentView = ColleaguesView { colleagues = demoColleagues }, connected = False } ! []
-
-                _ ->
-                    model ! []
+        Closed channel ->
+            let
+                debug =
+                    Debug.log "Closed Channel" channel
+            in
+            model ! []
 
         PhoenixMsg msg ->
             let
@@ -690,7 +735,7 @@ colleagueView model colleagueModel =
             in
             div [ class "app" ]
                 [ div [ class "header" ]
-                    [ div [ classList [ ( "title", True ), ( "connected", model.connected ) ] ]
+                    [ div [ class "title" ]
                         [ div [] [ text "Who's Available?" ]
                         ]
                     , div [ class "time" ] [ text (formatTimeZone viewModel.localtime viewModel.userTimezone) ]

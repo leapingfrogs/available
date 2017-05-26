@@ -19,7 +19,7 @@ defmodule App.Web.UserChannel do
   end
   def handle_in("load:data", payload, socket) do
     colleagues = App.Colleagues.list_users()
-    |> (Enum.map &user2Model/1)
+    |> (Enum.map &App.Colleagues.to_json/1)
     :ok = push socket, "data", %{:colleagues => colleagues}
 
     {:noreply, socket}
@@ -32,22 +32,14 @@ defmodule App.Web.UserChannel do
     {:noreply, socket}
   end
 
+  def handle_out("new:colleague", payload, socket) do
+    IO.inspect [:outward, "new:colleague", payload]
+    push socket, "new:colleague", payload
+  end
+
   # Add authorization logic here as required.
   defp authorized?(_payload) do
     true
   end
 
-  defp user2Model(user) do
-    %{ name: user.name,
-       email: user.email,
-       location: user.location,
-       timezone: user.timezone,
-       workingHours: %{ timezone: "Europe/London",
-                        blocks: [ %{ start: %{ hour: 19, minute: 1},
-                                     end: %{hour: 20, minute: 0}
-                                   }
-                                ]
-                      }
-     }
-  end
 end

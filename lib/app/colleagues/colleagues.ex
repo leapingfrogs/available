@@ -13,6 +13,20 @@ defmodule App.Colleagues do
     Repo.get_by!(User, email: email)
   end
 
+  def to_json(user) do
+    %{ name: user.name,
+       email: user.email,
+       location: user.location,
+       timezone: user.timezone,
+       workingHours: %{ timezone: user.timezone,
+                        blocks: [ %{ start: %{ hour: 09, minute: 00},
+                                     end: %{hour: 17, minute: 00}
+                                   }
+                                ]
+                      }
+     }
+  end
+
   @doc """
   Returns the list of users.
 

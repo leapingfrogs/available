@@ -12,6 +12,7 @@ defmodule App.Web.UserController do
   def signup(conn, %{"email" => email, "location" => location, "name" => name, "timezone" => timezone}) do
     {:ok, user} = App.Colleagues.create_user(%{email: email, location: location, name: name, timezone: timezone})
     IO.inspect(user)
+    App.Web.Endpoint.broadcast("user:all", "new:colleague", %{:colleagues => [App.Colleagues.to_json(user)]})
     json conn, %{email: user.email, location: user.location, name: user.name, timezone: user.timezone}
   end
 end
