@@ -1,6 +1,7 @@
 module App exposing (..)
 
-import Html exposing (Html, br, button, div, fieldset, img, input, label, span, text)
+import Dict as Dict exposing (keys)
+import Html exposing (Html, br, button, div, fieldset, img, input, label, option, select, span, text)
 import Html.Attributes exposing (class, classList, for, height, name, placeholder, src, type_, value, width)
 import Html.Events exposing (onClick, onInput, onMouseEnter, onMouseLeave)
 import Http
@@ -21,6 +22,11 @@ import Time.ZonedDateTime as ZonedDateTime exposing (ZonedDateTime)
 
 
 ---- MODEL ----
+
+
+apiRoot : String
+apiRoot =
+    "http://localhost:4000/api"
 
 
 avatarSize : Int
@@ -240,7 +246,6 @@ type Msg
     = ShowDetail Bool Person
     | Tick Time
     | LoadData Encode.Value
-    | ToggleChannel Bool
     | Joined
     | Closed
     | UpdateLogin LoginField String
@@ -251,10 +256,8 @@ type Msg
     | PhoenixMsg (Phoenix.Socket.Msg Msg)
     | HandleLoginRequest (Result Http.Error Person)
     | HandleSignupRequest (Result Http.Error Person)
-
-
-
---    | ReceiveFromLocalStorage ( LocalStorage.Key, LocalStorage.Value )
+    | ReceiveFromLocalStorage ( LocalStorage.Key, LocalStorage.Value )
+    | Logout
 
 
 connect : Model -> ( Model, Cmd Msg )
@@ -266,7 +269,7 @@ connect model =
         Just user ->
             let
                 channel =
-                    Phoenix.Channel.init (Debug.log "joining: " ("user:" ++ user.email))
+                    Phoenix.Channel.init ("user:" ++ user.email)
                         |> Phoenix.Channel.withPayload (Encode.object [])
                         |> Phoenix.Channel.onJoin (always Joined)
                         |> Phoenix.Channel.onClose (always Closed)
@@ -286,11 +289,25 @@ findUser model =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Tick time ->
+        Logout ->
             let
-                debug =
-                    Debug.log "View: " model.currentView
+                ( phxSocket, phxCmd ) =
+                    case model.currentUser of
+                        Just user ->
+                            Phoenix.Socket.leave ("user:" ++ user.email) model.phxSocket
+
+                        Nothing ->
+                            ( model.phxSocket, Cmd.none )
             in
+            { model
+                | currentView = LoginView { email = "", password = "", error = "" }
+                , currentUser = Nothing
+                , connected = False
+                , phxSocket = phxSocket
+            }
+                ! [ Cmd.map PhoenixMsg phxCmd, LocalStorage.storageClear () ]
+
+        Tick time ->
             { model | now = Just (DateTime.fromTimestamp time) } ! []
 
         ShowDetail show person ->
@@ -327,24 +344,6 @@ update msg model =
 
                 _ ->
                     model ! []
-
-        ToggleChannel connected ->
-            case model.currentUser of
-                Nothing ->
-                    model ! []
-
-                Just user ->
-                    case connected of
-                        True ->
-                            let
-                                ( phxSocket, phxCmd ) =
-                                    Phoenix.Socket.leave ("user:" ++ user.email) model.phxSocket
-                            in
-                            { model | phxSocket = phxSocket }
-                                ! [ Cmd.map PhoenixMsg phxCmd ]
-
-                        False ->
-                            connect model
 
         Joined ->
             case model.currentUser of
@@ -493,28 +492,33 @@ update msg model =
                 _ ->
                     model ! []
 
+        ReceiveFromLocalStorage ( "currentUser", jsonValue ) ->
+            case Decode.decodeValue Decode.string jsonValue of
+                Ok value ->
+                    let
+                        loginModel =
+                            { email = value, password = "", error = "" }
+                    in
+                    { model | currentView = LoginView loginModel }
+                        ! [ performLoginRequest loginModel ]
+
+                Err value ->
+                    model ! []
+
+        ReceiveFromLocalStorage ( key, jsonValue ) ->
+            model ! []
 
 
---                ReceiveFromLocalStorage ( "currentUser", jsonValue ) ->
---                    case Decode.decodeValue Decode.string jsonValue of
---                        Ok value ->
---                            let
---                                debug =
---                                    Debug.log "Found User: " value
---                            in
---                            model ! []
-
-
-type RequestOperation
-    = LoginOperation
-    | SignUpOperation
+apiUrl : String -> String
+apiUrl action =
+    apiRoot ++ action
 
 
 performLoginRequest : LoginModel -> Cmd Msg
 performLoginRequest loginForm =
     let
         url =
-            "http://localhost:4000/api/login"
+            apiUrl "/login"
 
         request =
             Http.post url
@@ -533,7 +537,7 @@ performSignupRequest : SignupModel -> Cmd Msg
 performSignupRequest signup =
     let
         url =
-            "http://localhost:4000/api/signup"
+            apiUrl "/signup"
 
         request =
             Http.post url
@@ -601,7 +605,16 @@ signupView model =
                         ]
                     , div []
                         [ label [ for "timezone" ] [ text "Timezone" ]
-                        , input [ onInput (UpdateSignup SignupTimezone), type_ "text", Html.Attributes.name "timezone", Html.Attributes.value model.timezone, placeholder "Utc" ] []
+                        , select [ onInput (UpdateSignup SignupTimezone), Html.Attributes.name "timezone" ]
+                            (let
+                                timezones =
+                                    TimeZones.all
+                                        |> Dict.keys
+                             in
+                             List.map
+                                (\timezone -> option [] [ text timezone ])
+                                timezones
+                            )
                         ]
                     , div [ class "error" ]
                         [ text model.error ]
@@ -678,10 +691,10 @@ colleagueView model colleagueModel =
             div [ class "app" ]
                 [ div [ class "header" ]
                     [ div [ classList [ ( "title", True ), ( "connected", model.connected ) ] ]
-                        [ div [ onClick (ToggleChannel model.connected) ] [ text "Who's Available?" ]
+                        [ div [] [ text "Who's Available?" ]
                         ]
                     , div [ class "time" ] [ text (formatTimeZone viewModel.localtime viewModel.userTimezone) ]
-                    , div [ class "user" ]
+                    , div [ class "user", onClick Logout ]
                         [ div [] [ text viewModel.userName ]
                         , img [ src (gravatarUrl viewModel.userEmail), width 30, height 30 ] []
                         ]
@@ -905,8 +918,7 @@ subscriptions model =
     Sub.batch
         [ Time.every Time.second Tick
         , Phoenix.Socket.listen model.phxSocket PhoenixMsg
-
-        --        , LocalStorage.storageGetItemResponse ReceiveFromLocalStorage
+        , LocalStorage.storageGetItemResponse ReceiveFromLocalStorage
         ]
 
 
