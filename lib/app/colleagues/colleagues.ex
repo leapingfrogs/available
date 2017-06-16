@@ -19,8 +19,8 @@ defmodule App.Colleagues do
        location: user.location,
        timezone: user.timezone,
        workingHours: %{ timezone: user.timezone,
-                        blocks: [ %{ start: %{ hour: 09, minute: 00},
-                                     end: %{hour: 17, minute: 00}
+                        blocks: [ %{ start: %{ hour: 00, minute: 00},
+                                     end: %{hour: 23, minute: 59}
                                    }
                                 ]
                       }

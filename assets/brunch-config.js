@@ -51,7 +51,7 @@ exports.config = {
     elmBrunch: {
       mainModules: ['elm/Main.elm'],
       outputFolder: '../assets/js',
-      makeParameters: ['--debug']
+      makeParameters: ['--debug --warn']
     }
   },
 

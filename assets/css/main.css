@@ -28,13 +28,15 @@ img {
     top: 0;
     height: 1.5rem;
     overflow: hidden;
-    opacity: 0.8;
+    /*opacity: 0.8;*/
     display: flex;
     background-color: slategray;
     color: whitesmoke;
     font-size: 1.5rem;
     padding: 0.5rem;
     border-bottom: 1px solid darkslategray;
+    align-items: flex-start;
+
 }
 
 .header div {
@@ -43,7 +45,7 @@ img {
 
 .header .title {
     text-align: left;
-    color: maroon;
+    color: whitesmoke;
 }
 
 .header .title.connected {
@@ -56,6 +58,109 @@ img {
 
 .header .user {
     text-align: right;
+}
+
+.header button {
+    border: none;
+    background: none;
+    color: whitesmoke;
+    font-weight: 900;
+    font-size: 1.5rem;
+    /*padding: 0.5rem;*/
+}
+
+.menu {
+    display: flex;
+    background-color: lightslategray;
+    border-bottom: 1px solid slategray;
+    /*opacity: 0.8;*/
+    color: whitesmoke;
+    flex: 1 0 auto;
+    flex-direction: row;
+}
+
+.menu ul {
+    display: flex;
+    flex: 1 0 auto;
+    justify-content: flex-start;
+    align-items: center;
+    margin: 0.3rem 0.1rem 0.3rem 0.1rem;
+    padding: 0;
+}
+
+.menu ul li {
+    display: inline-block;
+    list-style: none;
+    margin: 0 0.2rem;
+    padding: 0;
+}
+
+.menu ul li:first-child {
+    /*text-align: left;*/
+}
+
+.menu ul li.spacer {
+    flex: 1 0 auto;
+}
+
+.menu button {
+    border: none;
+    background: slategray;
+    padding: 0.5rem;
+    color: white;
+}
+
+.optional {
+    z-index: -1000;
+    border-bottom: 1px solid lightslategray;
+    background-color: ghostwhite;
+}
+
+.settings {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem 2rem 0 2rem;
+    background: ghostwhite;
+    margin: 0;
+}
+
+.day {
+    display: flex;
+    flex-direction: row;
+    border: 1px dashed grey;
+    margin: 1rem;
+}
+
+.day div {
+    padding-top: 1.5rem;
+    margin-bottom: -1.5rem;
+    flex: 1;
+    text-align: center;
+}
+
+.day div:last-child {
+    text-align: right;
+}
+
+.day div:first-child {
+    text-align: left;
+}
+
+.day div.block {
+    width: 2rem;
+    /*height: 1rem;*/
+    background: green;
+    margin-bottom: 0;
+    padding-top: 0;
+}
+
+.day div.startday {
+    width: 1px;
+    height: 2rem;
+}
+.day div.endday {
+    width: 1px;
+    height: 2rem;
 }
 
 .login {

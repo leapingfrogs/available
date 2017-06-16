@@ -1,8 +1,8 @@
 module App exposing (..)
 
 import Dict as Dict exposing (keys)
-import Html exposing (Html, br, button, div, fieldset, img, input, label, option, select, span, text)
-import Html.Attributes exposing (class, classList, for, height, name, placeholder, src, type_, value, width)
+import Html exposing (Html, a, br, button, div, fieldset, img, input, label, li, option, select, span, text, ul)
+import Html.Attributes exposing (attribute, class, classList, for, height, href, name, placeholder, src, type_, value, width)
 import Html.Events exposing (onClick, onInput, onMouseEnter, onMouseLeave)
 import Http
 import Json.Decode as Decode exposing (..)
@@ -13,6 +13,7 @@ import MD5
 import Phoenix.Channel
 import Phoenix.Push
 import Phoenix.Socket
+import Ports.Google as Google
 import Ports.LocalStorage as LocalStorage
 import Time exposing (Time)
 import Time.DateTime as DateTime exposing (DateTime)
@@ -75,7 +76,10 @@ type alias SignupModel =
 
 
 type alias ColleagueModel =
-    { colleagues : List Person }
+    { colleagues : List Person
+    , showMenu : Bool
+    , showSettings : Bool
+    }
 
 
 type alias Person =
@@ -104,6 +108,23 @@ type alias SimpleTime =
 
 type alias ColleagueList =
     { colleagues : List Person }
+
+
+type alias GoogleUser =
+    { idToken : String
+    , name : String
+    , email : String
+    , avatarUrl : String
+    }
+
+
+googleUserDecoder : Decoder GoogleUser
+googleUserDecoder =
+    decode GoogleUser
+        |> required "idToken" string
+        |> required "name" string
+        |> required "email" string
+        |> required "avatarUrl" string
 
 
 colleagueListDecoder : Decoder ColleagueList
@@ -255,6 +276,7 @@ type Msg
     | UpdateLogin LoginField String
     | UpdateSignup SignupField String
     | Login
+    | GoogleLogin Encode.Value
     | SignUp
     | SelectView View
     | PhoenixMsg (Phoenix.Socket.Msg Msg)
@@ -262,6 +284,8 @@ type Msg
     | HandleSignupRequest (Result Http.Error Person)
     | ReceiveFromLocalStorage ( LocalStorage.Key, LocalStorage.Value )
     | Logout
+    | ToggleMenu
+    | ToggleSettings
 
 
 join : String -> Phoenix.Channel.Channel Msg
@@ -307,8 +331,39 @@ findUser model =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        ToggleMenu ->
+            case model.currentView of
+                ColleaguesView colleaguesModel ->
+                    { model
+                        | currentView =
+                            ColleaguesView
+                                { colleaguesModel
+                                    | showMenu = not colleaguesModel.showMenu
+                                }
+                    }
+                        ! []
+
+                _ ->
+                    model ! []
+
+        ToggleSettings ->
+            case model.currentView of
+                ColleaguesView colleaguesModel ->
+                    { model
+                        | currentView =
+                            ColleaguesView
+                                { colleaguesModel | showSettings = not colleaguesModel.showSettings }
+                    }
+                        ! []
+
+                _ ->
+                    model ! []
+
         Logout ->
             let
+                debug =
+                    Debug.log "Logging Out"
+
                 ( phxSocket, phxCmd ) =
                     case model.currentUser of
                         Just user ->
@@ -322,7 +377,7 @@ update msg model =
                 , currentUser = Nothing
                 , phxSocket = phxSocket
             }
-                ! [ Cmd.map PhoenixMsg phxCmd, LocalStorage.storageClear () ]
+                ! [ Cmd.map PhoenixMsg phxCmd, LocalStorage.storageClear (), Google.logout () ]
 
         Tick time ->
             { model | now = Just (DateTime.fromTimestamp time) } ! []
@@ -333,15 +388,16 @@ update msg model =
                     { model
                         | currentView =
                             ColleaguesView
-                                { colleagues =
-                                    List.map
-                                        (\colleague ->
-                                            if person == colleague then
-                                                { colleague | displayName = show }
-                                            else
-                                                colleague
-                                        )
-                                        colleaguesModel.colleagues
+                                { colleaguesModel
+                                    | colleagues =
+                                        List.map
+                                            (\colleague ->
+                                                if person == colleague then
+                                                    { colleague | displayName = show }
+                                                else
+                                                    colleague
+                                            )
+                                            colleaguesModel.colleagues
                                 }
                     }
                         ! []
@@ -353,11 +409,11 @@ update msg model =
             case model.currentView of
                 ColleaguesView colleaguesModel ->
                     case Decode.decodeValue colleagueListDecoder raw of
-                        Ok colleagueData ->
-                            { model | currentView = ColleaguesView colleagueData } ! []
+                        Ok { colleagues } ->
+                            { model | currentView = ColleaguesView { colleagues = colleagues, showMenu = False, showSettings = False } } ! []
 
                         Err error ->
-                            { model | currentView = ColleaguesView { colleagues = demoColleagues } } ! []
+                            { model | currentView = ColleaguesView { colleagues = demoColleagues, showMenu = False, showSettings = False } } ! []
 
                 _ ->
                     model ! []
@@ -367,10 +423,10 @@ update msg model =
                 ColleaguesView colleaguesModel ->
                     case Decode.decodeValue colleagueListDecoder raw of
                         Ok colleagueData ->
-                            { model | currentView = ColleaguesView { colleagues = colleaguesModel.colleagues ++ colleagueData.colleagues } } ! []
+                            { model | currentView = ColleaguesView { colleagues = colleaguesModel.colleagues ++ colleagueData.colleagues, showMenu = False, showSettings = False } } ! []
 
                         Err error ->
-                            { model | currentView = ColleaguesView { colleagues = demoColleagues } } ! []
+                            { model | currentView = ColleaguesView { colleagues = demoColleagues, showMenu = False, showSettings = False } } ! []
 
                 _ ->
                     model ! []
@@ -445,6 +501,27 @@ update msg model =
                 _ ->
                     model ! []
 
+        GoogleLogin json ->
+            let
+                googleUser =
+                    json
+                        |> Decode.decodeValue googleUserDecoder
+
+                debug =
+                    Debug.log "Signed In with: " googleUser
+            in
+            case model.currentView of
+                LoginView loginModel ->
+                    case googleUser of
+                        Ok user ->
+                            model ! [ performLoginRequest <| LoginModel user.email "" "" ]
+
+                        Err error ->
+                            model ! []
+
+                _ ->
+                    model ! []
+
         SelectView view ->
             { model
                 | currentView = view
@@ -455,7 +532,7 @@ update msg model =
             connect
                 { model
                     | currentUser = Just user
-                    , currentView = ColleaguesView { colleagues = [] }
+                    , currentView = ColleaguesView { colleagues = [], showMenu = False, showSettings = False }
                 }
 
         HandleLoginRequest (Err message) ->
@@ -473,7 +550,7 @@ update msg model =
             connect
                 { model
                     | currentUser = Just user
-                    , currentView = ColleaguesView { colleagues = [] }
+                    , currentView = ColleaguesView { colleagues = [], showMenu = False, showSettings = False }
                 }
 
         HandleSignupRequest (Err message) ->
@@ -680,24 +757,23 @@ loginView model =
             [ div [ class "title" ] []
             ]
         , div [ class "content" ]
-            [ div [ class "login" ]
-                [ fieldset []
-                    [ div []
-                        [ label [ for "email" ] [ text "Email" ]
-                        , input [ onInput (UpdateLogin LoginEmail), type_ "text", Html.Attributes.name "email", Html.Attributes.value model.email, placeholder "someone@somewhere.com" ] []
-                        ]
-                    , div []
-                        [ label [ for "password" ] [ text "Password" ]
-                        , input [ onInput (UpdateLogin LoginPassword), type_ "password", Html.Attributes.name "password", Html.Attributes.value model.password, placeholder "password" ] []
-                        ]
-                    , div [ class "error" ]
-                        [ text model.error ]
-                    , div []
-                        [ button [ onClick Login ] [ text "Login" ]
-                        , button [ onClick (SelectView (SignupView (SignupModel model.email "" "" "" ""))) ] [ text "Sign Up" ]
-                        ]
-                    ]
-                ]
+            [ div [ class "glogin" ]
+                [ div [ class "g-signin2", attribute "data-onsuccess" "onSignIn" ] [] ]
+
+            --            , div [ class "login" ]
+            --                [ fieldset []
+            --                    [ div []
+            --                        [ label [ for "email" ] [ text "Email" ]
+            --                        , input [ onInput (UpdateLogin LoginEmail), type_ "text", Html.Attributes.name "email", Html.Attributes.value model.email, placeholder "someone@somewhere.com" ] []
+            --                        ]
+            --                    , div [ class "error" ]
+            --                        [ text model.error ]
+            --                    , div []
+            --                        [ button [ onClick Login ] [ text "Login" ]
+            --                        , button [ onClick (SelectView (SignupView (SignupModel model.email "" "" "" ""))) ] [ text "Sign Up" ]
+            --                        ]
+            --                    ]
+            --                ]
             ]
         ]
 
@@ -731,7 +807,7 @@ colleagueView model colleagueModel =
                     viewModel.timezones
                         |> List.map resolvedTimezone
                         |> List.uniqueBy (TimeZone.abbreviation (ZonedDateTime.toTimestamp viewModel.localtime))
-                        |> List.sortWith timezoneComparison
+                        |> List.sortWith (timezoneComparison (ZonedDateTime.toTimestamp viewModel.localtime))
             in
             div [ class "app" ]
                 [ div [ class "header" ]
@@ -739,23 +815,48 @@ colleagueView model colleagueModel =
                         [ div [] [ text "Who's Available?" ]
                         ]
                     , div [ class "time" ] [ text (formatTimeZone viewModel.localtime viewModel.userTimezone) ]
-                    , div [ class "user", onClick Logout ]
+                    , div [ class "user", onClick ToggleMenu ]
                         [ div [] [ text viewModel.userName ]
                         , img [ src (gravatarUrl viewModel.userEmail), width 30, height 30 ] []
                         ]
                     ]
                 , div [ class "content" ]
-                    [ div [ class "timezones" ]
+                    [ div
+                        [ classList
+                            [ ( "optional", True )
+                            , ( "animated", True )
+                            , ( "slideInDown", colleagueModel.showMenu )
+                            , ( "slideOutUp", not colleagueModel.showMenu )
+                            ]
+                        ]
+                        [ div [ class "menu" ]
+                            [ ul []
+                                [ li [] [ text "Setup your typical working hours" ]
+                                , li [ class "spacer" ] []
+                                , li [] [ button [ onClick Logout ] [ text "Logout" ] ]
+                                ]
+                            ]
+                        , div []
+                            [ div [ class "day" ]
+                                [ div [ class "startday" ] []
+                                , div [ class "block" ] []
+                                , div [] []
+                                , div [ class "block" ] []
+                                , div [ class "endday" ] []
+                                ]
+                            ]
+                        ]
+                    , div [ class "timezones" ]
                         (List.map
-                            (zoneColumn viewModel.localtime colleagueModel.colleagues)
+                            (zoneColumn viewModel.userTimezone viewModel.localtime colleagueModel.colleagues)
                             offsets
                         )
                     ]
                 ]
 
 
-zoneColumn : ZonedDateTime -> List Person -> TimeZone -> Html Msg
-zoneColumn time colleagues zone =
+zoneColumn : TimeZone -> ZonedDateTime -> List Person -> TimeZone -> Html Msg
+zoneColumn localzone time colleagues zone =
     let
         people =
             colleagues
@@ -763,7 +864,7 @@ zoneColumn time colleagues zone =
     in
     div [ class "zone" ]
         ([ div [ class "timezone" ]
-            [ text (formatTimeZone time zone)
+            [ text <| formatTimeZone time zone
             ]
          ]
             ++ List.map (person time) people
@@ -809,7 +910,7 @@ person time person =
                 userIntervals
 
         meeting =
-            person.name == "Richard Feldman"
+            False
     in
     div
         [ classList
@@ -841,14 +942,14 @@ timezoneOffset zone =
     TimeZone.offset 0.0 zone
 
 
-timezoneComparison : TimeZone -> TimeZone -> Order
-timezoneComparison zone1 zone2 =
+timezoneComparison : Time -> TimeZone -> TimeZone -> Order
+timezoneComparison time zone1 zone2 =
     let
         offset1 =
-            TimeZone.offset 0.0 zone1
+            TimeZone.offset time zone1
 
         offset2 =
-            TimeZone.offset 0.0 zone2
+            TimeZone.offset time zone2
     in
     case compare offset1 offset2 of
         LT ->
@@ -866,12 +967,59 @@ formatTimeZone time timezone =
     let
         localtime =
             convertTime timezone time
+
+        monthString : Int -> String
+        monthString month =
+            case month of
+                1 ->
+                    "January"
+
+                2 ->
+                    "February"
+
+                3 ->
+                    "March"
+
+                4 ->
+                    "April"
+
+                5 ->
+                    "May"
+
+                6 ->
+                    "June"
+
+                7 ->
+                    "July"
+
+                8 ->
+                    "August"
+
+                9 ->
+                    "September"
+
+                10 ->
+                    "October"
+
+                11 ->
+                    "November"
+
+                12 ->
+                    "December"
+
+                _ ->
+                    toString month
     in
     [ toString (ZonedDateTime.hour localtime)
     , ":"
     , String.padLeft 2 '0' (toString (ZonedDateTime.minute localtime))
     , " "
+    , toString <| ZonedDateTime.day localtime
+    , " "
+    , monthString <| ZonedDateTime.month localtime
+    , " ("
     , ZonedDateTime.abbreviation localtime
+    , ")"
     ]
         |> List.foldr (++) ""
 
@@ -964,6 +1112,7 @@ subscriptions model =
         [ Time.every Time.second Tick
         , Phoenix.Socket.listen model.phxSocket PhoenixMsg
         , LocalStorage.storageGetItemResponse ReceiveFromLocalStorage
+        , Google.onLogin GoogleLogin
         ]
 
 

@@ -12,5 +12,7 @@ defmodule App.Repo.Migrations.CreateApp.Colleagues.User do
       timestamps()
     end
 
+    create unique_index(:colleagues_users, [:email])
+
   end
 end

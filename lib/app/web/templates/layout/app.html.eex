@@ -9,6 +9,9 @@
 
     <title>Hello App!</title>
     <link rel="stylesheet" href="<%= static_path(@conn, "/css/app.css") %>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.5.2/animate.min.css">
+    <script src="https://apis.google.com/js/platform.js" async defer></script>
+    <meta name="google-signin-client_id" content="117168376115-0vsudmacjitssep7s7012mtlm8em3rki.apps.googleusercontent.com">
   </head>
 
   <body>

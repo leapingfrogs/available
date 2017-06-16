@@ -32,11 +32,6 @@ defmodule App.Web.UserChannel do
     {:noreply, socket}
   end
 
-  def handle_out("new:colleague", payload, socket) do
-    IO.inspect [:outward, "new:colleague", payload]
-    push socket, "new:colleague", payload
-  end
-
   # Add authorization logic here as required.
   defp authorized?(_payload) do
     true

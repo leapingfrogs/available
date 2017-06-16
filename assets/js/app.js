@@ -27,3 +27,27 @@ var root = document.getElementById('root');
 var myElmApp = Elm.App.embed(root);
 var localStoragePorts = require("elm-localstorage-ports");
 localStoragePorts.register(myElmApp.ports);
+
+myElmApp.ports.getToken.subscribe(function(scopes) {
+    console.log("Requested token for scopes: ", scopes);
+    myElmApp.ports.onToken.send("Not Retrieved");
+});
+myElmApp.ports.logout.subscribe(function() {
+   console.log("Logging out of google session");
+    gapi.auth2.getAuthInstance().signOut();
+});
+
+window.onSignIn = function(googleUser) {
+    var id_token = googleUser.getAuthResponse().id_token;
+    var profile = googleUser.getBasicProfile();
+
+    var data = {
+        idToken: id_token,
+        name: profile.getName(),
+        email: profile.getEmail(),
+        avatarUrl: profile.getImageUrl()
+    };
+
+    console.log("User Data: ",  data);
+    myElmApp.ports.onLogin.send(data);
+};

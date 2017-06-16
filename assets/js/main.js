@@ -24706,6 +24706,22 @@ var _sanichi$elm_md5$MD5$hex = function (string) {
 				_sanichi$elm_md5$MD5$wordToHex(d))));
 };
 
+var _user$project$Ports_Google$onLogin = _elm_lang$core$Native_Platform.incomingPort('onLogin', _elm_lang$core$Json_Decode$value);
+var _user$project$Ports_Google$getToken = _elm_lang$core$Native_Platform.outgoingPort(
+	'getToken',
+	function (v) {
+		return _elm_lang$core$Native_List.toArray(v).map(
+			function (v) {
+				return v;
+			});
+	});
+var _user$project$Ports_Google$onToken = _elm_lang$core$Native_Platform.incomingPort('onToken', _elm_lang$core$Json_Decode$string);
+var _user$project$Ports_Google$logout = _elm_lang$core$Native_Platform.outgoingPort(
+	'logout',
+	function (v) {
+		return null;
+	});
+
 var _user$project$Ports_LocalStorage$storageGetItemResponse = _elm_lang$core$Native_Platform.incomingPort(
 	'storageGetItemResponse',
 	A2(
@@ -24773,10 +24789,10 @@ var _user$project$App$localtime = F2(
 			return A2(_Bogdanp$elm_time$Time_ZonedDateTime$fromDateTime, timezone, _p1._0);
 		}
 	});
-var _user$project$App$timezoneComparison = F2(
-	function (zone1, zone2) {
-		var offset2 = A2(_Bogdanp$elm_time$Time_TimeZone$offset, 0.0, zone2);
-		var offset1 = A2(_Bogdanp$elm_time$Time_TimeZone$offset, 0.0, zone1);
+var _user$project$App$timezoneComparison = F3(
+	function (time, zone1, zone2) {
+		var offset2 = A2(_Bogdanp$elm_time$Time_TimeZone$offset, time, zone2);
+		var offset1 = A2(_Bogdanp$elm_time$Time_TimeZone$offset, time, zone1);
 		var _p2 = A2(_elm_lang$core$Basics$compare, offset1, offset2);
 		switch (_p2.ctor) {
 			case 'LT':
@@ -24799,6 +24815,37 @@ var _user$project$App$convertTime = F2(
 	});
 var _user$project$App$formatTimeZone = F2(
 	function (time, timezone) {
+		var monthString = function (month) {
+			var _p3 = month;
+			switch (_p3) {
+				case 1:
+					return 'January';
+				case 2:
+					return 'February';
+				case 3:
+					return 'March';
+				case 4:
+					return 'April';
+				case 5:
+					return 'May';
+				case 6:
+					return 'June';
+				case 7:
+					return 'July';
+				case 8:
+					return 'August';
+				case 9:
+					return 'September';
+				case 10:
+					return 'October';
+				case 11:
+					return 'November';
+				case 12:
+					return 'December';
+				default:
+					return _elm_lang$core$Basics$toString(month);
+			}
+		};
 		var localtime = A2(_user$project$App$convertTime, timezone, time);
 		return A3(
 			_elm_lang$core$List$foldr,
@@ -24827,14 +24874,105 @@ var _user$project$App$formatTimeZone = F2(
 							_0: ' ',
 							_1: {
 								ctor: '::',
-								_0: _Bogdanp$elm_time$Time_ZonedDateTime$abbreviation(localtime),
-								_1: {ctor: '[]'}
+								_0: _elm_lang$core$Basics$toString(
+									_Bogdanp$elm_time$Time_ZonedDateTime$day(localtime)),
+								_1: {
+									ctor: '::',
+									_0: ' ',
+									_1: {
+										ctor: '::',
+										_0: monthString(
+											_Bogdanp$elm_time$Time_ZonedDateTime$month(localtime)),
+										_1: {
+											ctor: '::',
+											_0: ' (',
+											_1: {
+												ctor: '::',
+												_0: _Bogdanp$elm_time$Time_ZonedDateTime$abbreviation(localtime),
+												_1: {
+													ctor: '::',
+													_0: ')',
+													_1: {ctor: '[]'}
+												}
+											}
+										}
+									}
+								}
 							}
 						}
 					}
 				}
 			});
 	});
+var _user$project$App$loginView = function (model) {
+	return A2(
+		_elm_lang$html$Html$div,
+		{
+			ctor: '::',
+			_0: _elm_lang$html$Html_Attributes$class('app'),
+			_1: {ctor: '[]'}
+		},
+		{
+			ctor: '::',
+			_0: A2(
+				_elm_lang$html$Html$div,
+				{
+					ctor: '::',
+					_0: _elm_lang$html$Html_Attributes$class('header'),
+					_1: {ctor: '[]'}
+				},
+				{
+					ctor: '::',
+					_0: A2(
+						_elm_lang$html$Html$div,
+						{
+							ctor: '::',
+							_0: _elm_lang$html$Html_Attributes$class('title'),
+							_1: {ctor: '[]'}
+						},
+						{ctor: '[]'}),
+					_1: {ctor: '[]'}
+				}),
+			_1: {
+				ctor: '::',
+				_0: A2(
+					_elm_lang$html$Html$div,
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html_Attributes$class('content'),
+						_1: {ctor: '[]'}
+					},
+					{
+						ctor: '::',
+						_0: A2(
+							_elm_lang$html$Html$div,
+							{
+								ctor: '::',
+								_0: _elm_lang$html$Html_Attributes$class('glogin'),
+								_1: {ctor: '[]'}
+							},
+							{
+								ctor: '::',
+								_0: A2(
+									_elm_lang$html$Html$div,
+									{
+										ctor: '::',
+										_0: _elm_lang$html$Html_Attributes$class('g-signin2'),
+										_1: {
+											ctor: '::',
+											_0: A2(_elm_lang$html$Html_Attributes$attribute, 'data-onsuccess', 'onSignIn'),
+											_1: {ctor: '[]'}
+										}
+									},
+									{ctor: '[]'}),
+								_1: {ctor: '[]'}
+							}),
+						_1: {ctor: '[]'}
+					}),
+				_1: {ctor: '[]'}
+			}
+		});
+};
 var _user$project$App$signupJson = function (details) {
 	return _elm_lang$core$Json_Encode$object(
 		{
@@ -24940,9 +25078,10 @@ var _user$project$App$SignupModel = F5(
 	function (a, b, c, d, e) {
 		return {email: a, location: b, name: c, timezone: d, error: e};
 	});
-var _user$project$App$ColleagueModel = function (a) {
-	return {colleagues: a};
-};
+var _user$project$App$ColleagueModel = F3(
+	function (a, b, c) {
+		return {colleagues: a, showMenu: b, showSettings: c};
+	});
 var _user$project$App$Person = F6(
 	function (a, b, c, d, e, f) {
 		return {name: a, email: b, location: c, timezone: d, workingHours: e, displayName: f};
@@ -25128,6 +25267,27 @@ var _user$project$App$colleagueListDecoder = A3(
 	'colleagues',
 	_elm_lang$core$Json_Decode$list(_user$project$App$personDecoder),
 	_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$decode(_user$project$App$ColleagueList));
+var _user$project$App$GoogleUser = F4(
+	function (a, b, c, d) {
+		return {idToken: a, name: b, email: c, avatarUrl: d};
+	});
+var _user$project$App$googleUserDecoder = A3(
+	_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
+	'avatarUrl',
+	_elm_lang$core$Json_Decode$string,
+	A3(
+		_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
+		'email',
+		_elm_lang$core$Json_Decode$string,
+		A3(
+			_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
+			'name',
+			_elm_lang$core$Json_Decode$string,
+			A3(
+				_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$required,
+				'idToken',
+				_elm_lang$core$Json_Decode$string,
+				_NoRedInk$elm_decode_pipeline$Json_Decode_Pipeline$decode(_user$project$App$GoogleUser)))));
 var _user$project$App$ViewModel = F5(
 	function (a, b, c, d, e) {
 		return {userName: a, userEmail: b, userTimezone: c, localtime: d, timezones: e};
@@ -25154,6 +25314,8 @@ var _user$project$App$SignupTimezone = {ctor: 'SignupTimezone'};
 var _user$project$App$SignupName = {ctor: 'SignupName'};
 var _user$project$App$SignupLocation = {ctor: 'SignupLocation'};
 var _user$project$App$SignupEmail = {ctor: 'SignupEmail'};
+var _user$project$App$ToggleSettings = {ctor: 'ToggleSettings'};
+var _user$project$App$ToggleMenu = {ctor: 'ToggleMenu'};
 var _user$project$App$Logout = {ctor: 'Logout'};
 var _user$project$App$ReceiveFromLocalStorage = function (a) {
 	return {ctor: 'ReceiveFromLocalStorage', _0: a};
@@ -25193,6 +25355,9 @@ var _user$project$App$SelectView = function (a) {
 	return {ctor: 'SelectView', _0: a};
 };
 var _user$project$App$SignUp = {ctor: 'SignUp'};
+var _user$project$App$GoogleLogin = function (a) {
+	return {ctor: 'GoogleLogin', _0: a};
+};
 var _user$project$App$Login = {ctor: 'Login'};
 var _user$project$App$UpdateSignup = F2(
 	function (a, b) {
@@ -25521,222 +25686,6 @@ var _user$project$App$UpdateLogin = F2(
 	function (a, b) {
 		return {ctor: 'UpdateLogin', _0: a, _1: b};
 	});
-var _user$project$App$loginView = function (model) {
-	return A2(
-		_elm_lang$html$Html$div,
-		{
-			ctor: '::',
-			_0: _elm_lang$html$Html_Attributes$class('app'),
-			_1: {ctor: '[]'}
-		},
-		{
-			ctor: '::',
-			_0: A2(
-				_elm_lang$html$Html$div,
-				{
-					ctor: '::',
-					_0: _elm_lang$html$Html_Attributes$class('header'),
-					_1: {ctor: '[]'}
-				},
-				{
-					ctor: '::',
-					_0: A2(
-						_elm_lang$html$Html$div,
-						{
-							ctor: '::',
-							_0: _elm_lang$html$Html_Attributes$class('title'),
-							_1: {ctor: '[]'}
-						},
-						{ctor: '[]'}),
-					_1: {ctor: '[]'}
-				}),
-			_1: {
-				ctor: '::',
-				_0: A2(
-					_elm_lang$html$Html$div,
-					{
-						ctor: '::',
-						_0: _elm_lang$html$Html_Attributes$class('content'),
-						_1: {ctor: '[]'}
-					},
-					{
-						ctor: '::',
-						_0: A2(
-							_elm_lang$html$Html$div,
-							{
-								ctor: '::',
-								_0: _elm_lang$html$Html_Attributes$class('login'),
-								_1: {ctor: '[]'}
-							},
-							{
-								ctor: '::',
-								_0: A2(
-									_elm_lang$html$Html$fieldset,
-									{ctor: '[]'},
-									{
-										ctor: '::',
-										_0: A2(
-											_elm_lang$html$Html$div,
-											{ctor: '[]'},
-											{
-												ctor: '::',
-												_0: A2(
-													_elm_lang$html$Html$label,
-													{
-														ctor: '::',
-														_0: _elm_lang$html$Html_Attributes$for('email'),
-														_1: {ctor: '[]'}
-													},
-													{
-														ctor: '::',
-														_0: _elm_lang$html$Html$text('Email'),
-														_1: {ctor: '[]'}
-													}),
-												_1: {
-													ctor: '::',
-													_0: A2(
-														_elm_lang$html$Html$input,
-														{
-															ctor: '::',
-															_0: _elm_lang$html$Html_Events$onInput(
-																_user$project$App$UpdateLogin(_user$project$App$LoginEmail)),
-															_1: {
-																ctor: '::',
-																_0: _elm_lang$html$Html_Attributes$type_('text'),
-																_1: {
-																	ctor: '::',
-																	_0: _elm_lang$html$Html_Attributes$name('email'),
-																	_1: {
-																		ctor: '::',
-																		_0: _elm_lang$html$Html_Attributes$value(model.email),
-																		_1: {
-																			ctor: '::',
-																			_0: _elm_lang$html$Html_Attributes$placeholder('someone@somewhere.com'),
-																			_1: {ctor: '[]'}
-																		}
-																	}
-																}
-															}
-														},
-														{ctor: '[]'}),
-													_1: {ctor: '[]'}
-												}
-											}),
-										_1: {
-											ctor: '::',
-											_0: A2(
-												_elm_lang$html$Html$div,
-												{ctor: '[]'},
-												{
-													ctor: '::',
-													_0: A2(
-														_elm_lang$html$Html$label,
-														{
-															ctor: '::',
-															_0: _elm_lang$html$Html_Attributes$for('password'),
-															_1: {ctor: '[]'}
-														},
-														{
-															ctor: '::',
-															_0: _elm_lang$html$Html$text('Password'),
-															_1: {ctor: '[]'}
-														}),
-													_1: {
-														ctor: '::',
-														_0: A2(
-															_elm_lang$html$Html$input,
-															{
-																ctor: '::',
-																_0: _elm_lang$html$Html_Events$onInput(
-																	_user$project$App$UpdateLogin(_user$project$App$LoginPassword)),
-																_1: {
-																	ctor: '::',
-																	_0: _elm_lang$html$Html_Attributes$type_('password'),
-																	_1: {
-																		ctor: '::',
-																		_0: _elm_lang$html$Html_Attributes$name('password'),
-																		_1: {
-																			ctor: '::',
-																			_0: _elm_lang$html$Html_Attributes$value(model.password),
-																			_1: {
-																				ctor: '::',
-																				_0: _elm_lang$html$Html_Attributes$placeholder('password'),
-																				_1: {ctor: '[]'}
-																			}
-																		}
-																	}
-																}
-															},
-															{ctor: '[]'}),
-														_1: {ctor: '[]'}
-													}
-												}),
-											_1: {
-												ctor: '::',
-												_0: A2(
-													_elm_lang$html$Html$div,
-													{
-														ctor: '::',
-														_0: _elm_lang$html$Html_Attributes$class('error'),
-														_1: {ctor: '[]'}
-													},
-													{
-														ctor: '::',
-														_0: _elm_lang$html$Html$text(model.error),
-														_1: {ctor: '[]'}
-													}),
-												_1: {
-													ctor: '::',
-													_0: A2(
-														_elm_lang$html$Html$div,
-														{ctor: '[]'},
-														{
-															ctor: '::',
-															_0: A2(
-																_elm_lang$html$Html$button,
-																{
-																	ctor: '::',
-																	_0: _elm_lang$html$Html_Events$onClick(_user$project$App$Login),
-																	_1: {ctor: '[]'}
-																},
-																{
-																	ctor: '::',
-																	_0: _elm_lang$html$Html$text('Login'),
-																	_1: {ctor: '[]'}
-																}),
-															_1: {
-																ctor: '::',
-																_0: A2(
-																	_elm_lang$html$Html$button,
-																	{
-																		ctor: '::',
-																		_0: _elm_lang$html$Html_Events$onClick(
-																			_user$project$App$SelectView(
-																				_user$project$App$SignupView(
-																					A5(_user$project$App$SignupModel, model.email, '', '', '', '')))),
-																		_1: {ctor: '[]'}
-																	},
-																	{
-																		ctor: '::',
-																		_0: _elm_lang$html$Html$text('Sign Up'),
-																		_1: {ctor: '[]'}
-																	}),
-																_1: {ctor: '[]'}
-															}
-														}),
-													_1: {ctor: '[]'}
-												}
-											}
-										}
-									}),
-								_1: {ctor: '[]'}
-							}),
-						_1: {ctor: '[]'}
-					}),
-				_1: {ctor: '[]'}
-			}
-		});
-};
 var _user$project$App$Closed = function (a) {
 	return {ctor: 'Closed', _0: a};
 };
@@ -25765,34 +25714,34 @@ var _user$project$App$LoadData = function (a) {
 	return {ctor: 'LoadData', _0: a};
 };
 var _user$project$App$connect = function (model) {
-	var _p3 = model.currentUser;
-	if (_p3.ctor === 'Nothing') {
+	var _p4 = model.currentUser;
+	if (_p4.ctor === 'Nothing') {
 		return A2(
 			_elm_lang$core$Platform_Cmd_ops['!'],
 			model,
 			{ctor: '[]'});
 	} else {
-		var _p6 = _p3._0;
+		var _p7 = _p4._0;
 		var channel = _user$project$App$join(
-			A2(_elm_lang$core$Basics_ops['++'], 'user:', _p6.email));
+			A2(_elm_lang$core$Basics_ops['++'], 'user:', _p7.email));
 		var companyChannel = _user$project$App$join('user:all');
-		var _p4 = A2(
+		var _p5 = A2(
 			_fbonetti$elm_phoenix_socket$Phoenix_Socket$join,
 			companyChannel,
 			A4(
 				_fbonetti$elm_phoenix_socket$Phoenix_Socket$on,
 				'data',
-				A2(_elm_lang$core$Basics_ops['++'], 'user:', _p6.email),
+				A2(_elm_lang$core$Basics_ops['++'], 'user:', _p7.email),
 				_user$project$App$LoadData,
 				model.phxSocket));
-		var phxSocketCompany = _p4._0;
-		var phxCmdCompany = _p4._1;
-		var _p5 = A2(
+		var phxSocketCompany = _p5._0;
+		var phxCmdCompany = _p5._1;
+		var _p6 = A2(
 			_fbonetti$elm_phoenix_socket$Phoenix_Socket$join,
 			channel,
 			A4(_fbonetti$elm_phoenix_socket$Phoenix_Socket$on, 'new:colleague', 'user:all', _user$project$App$AddColleague, phxSocketCompany));
-		var phxSocketUser = _p5._0;
-		var phxCmdUser = _p5._1;
+		var phxSocketUser = _p6._0;
+		var phxCmdUser = _p6._1;
 		return A2(
 			_elm_lang$core$Platform_Cmd_ops['!'],
 			_elm_lang$core$Native_Utils.update(
@@ -25810,7 +25759,7 @@ var _user$project$App$connect = function (model) {
 							{
 								ctor: '_Tuple2',
 								_0: 'currentUser',
-								_1: _elm_lang$core$Json_Encode$string(_p6.email)
+								_1: _elm_lang$core$Json_Encode$string(_p7.email)
 							}),
 						_1: {ctor: '[]'}
 					}
@@ -25820,22 +25769,65 @@ var _user$project$App$connect = function (model) {
 };
 var _user$project$App$update = F2(
 	function (msg, model) {
-		var _p7 = msg;
-		switch (_p7.ctor) {
+		var _p8 = msg;
+		switch (_p8.ctor) {
+			case 'ToggleMenu':
+				var _p9 = model.currentView;
+				if (_p9.ctor === 'ColleaguesView') {
+					var _p10 = _p9._0;
+					return A2(
+						_elm_lang$core$Platform_Cmd_ops['!'],
+						_elm_lang$core$Native_Utils.update(
+							model,
+							{
+								currentView: _user$project$App$ColleaguesView(
+									_elm_lang$core$Native_Utils.update(
+										_p10,
+										{showMenu: !_p10.showMenu}))
+							}),
+						{ctor: '[]'});
+				} else {
+					return A2(
+						_elm_lang$core$Platform_Cmd_ops['!'],
+						model,
+						{ctor: '[]'});
+				}
+			case 'ToggleSettings':
+				var _p11 = model.currentView;
+				if (_p11.ctor === 'ColleaguesView') {
+					var _p12 = _p11._0;
+					return A2(
+						_elm_lang$core$Platform_Cmd_ops['!'],
+						_elm_lang$core$Native_Utils.update(
+							model,
+							{
+								currentView: _user$project$App$ColleaguesView(
+									_elm_lang$core$Native_Utils.update(
+										_p12,
+										{showSettings: !_p12.showSettings}))
+							}),
+						{ctor: '[]'});
+				} else {
+					return A2(
+						_elm_lang$core$Platform_Cmd_ops['!'],
+						model,
+						{ctor: '[]'});
+				}
 			case 'Logout':
-				var _p8 = function () {
-					var _p9 = model.currentUser;
-					if (_p9.ctor === 'Just') {
+				var _p13 = function () {
+					var _p14 = model.currentUser;
+					if (_p14.ctor === 'Just') {
 						return A2(
 							_fbonetti$elm_phoenix_socket$Phoenix_Socket$leave,
-							A2(_elm_lang$core$Basics_ops['++'], 'user:', _p9._0.email),
+							A2(_elm_lang$core$Basics_ops['++'], 'user:', _p14._0.email),
 							model.phxSocket);
 					} else {
 						return {ctor: '_Tuple2', _0: model.phxSocket, _1: _elm_lang$core$Platform_Cmd$none};
 					}
 				}();
-				var phxSocket = _p8._0;
-				var phxCmd = _p8._1;
+				var phxSocket = _p13._0;
+				var phxCmd = _p13._1;
+				var debug = _elm_lang$core$Debug$log('Logging Out');
 				return A2(
 					_elm_lang$core$Platform_Cmd_ops['!'],
 					_elm_lang$core$Native_Utils.update(
@@ -25853,7 +25845,12 @@ var _user$project$App$update = F2(
 							ctor: '::',
 							_0: _user$project$Ports_LocalStorage$storageClear(
 								{ctor: '_Tuple0'}),
-							_1: {ctor: '[]'}
+							_1: {
+								ctor: '::',
+								_0: _user$project$Ports_Google$logout(
+									{ctor: '_Tuple0'}),
+								_1: {ctor: '[]'}
+							}
 						}
 					});
 			case 'Tick':
@@ -25863,28 +25860,31 @@ var _user$project$App$update = F2(
 						model,
 						{
 							now: _elm_lang$core$Maybe$Just(
-								_Bogdanp$elm_time$Time_DateTime$fromTimestamp(_p7._0))
+								_Bogdanp$elm_time$Time_DateTime$fromTimestamp(_p8._0))
 						}),
 					{ctor: '[]'});
 			case 'ShowDetail':
-				var _p10 = model.currentView;
-				if (_p10.ctor === 'ColleaguesView') {
+				var _p15 = model.currentView;
+				if (_p15.ctor === 'ColleaguesView') {
+					var _p16 = _p15._0;
 					return A2(
 						_elm_lang$core$Platform_Cmd_ops['!'],
 						_elm_lang$core$Native_Utils.update(
 							model,
 							{
 								currentView: _user$project$App$ColleaguesView(
-									{
-										colleagues: A2(
-											_elm_lang$core$List$map,
-											function (colleague) {
-												return _elm_lang$core$Native_Utils.eq(_p7._1, colleague) ? _elm_lang$core$Native_Utils.update(
-													colleague,
-													{displayName: _p7._0}) : colleague;
-											},
-											_p10._0.colleagues)
-									})
+									_elm_lang$core$Native_Utils.update(
+										_p16,
+										{
+											colleagues: A2(
+												_elm_lang$core$List$map,
+												function (colleague) {
+													return _elm_lang$core$Native_Utils.eq(_p8._1, colleague) ? _elm_lang$core$Native_Utils.update(
+														colleague,
+														{displayName: _p8._0}) : colleague;
+												},
+												_p16.colleagues)
+										}))
 							}),
 						{ctor: '[]'});
 				} else {
@@ -25894,16 +25894,17 @@ var _user$project$App$update = F2(
 						{ctor: '[]'});
 				}
 			case 'LoadData':
-				var _p11 = model.currentView;
-				if (_p11.ctor === 'ColleaguesView') {
-					var _p12 = A2(_elm_lang$core$Json_Decode$decodeValue, _user$project$App$colleagueListDecoder, _p7._0);
-					if (_p12.ctor === 'Ok') {
+				var _p17 = model.currentView;
+				if (_p17.ctor === 'ColleaguesView') {
+					var _p18 = A2(_elm_lang$core$Json_Decode$decodeValue, _user$project$App$colleagueListDecoder, _p8._0);
+					if (_p18.ctor === 'Ok') {
 						return A2(
 							_elm_lang$core$Platform_Cmd_ops['!'],
 							_elm_lang$core$Native_Utils.update(
 								model,
 								{
-									currentView: _user$project$App$ColleaguesView(_p12._0)
+									currentView: _user$project$App$ColleaguesView(
+										{colleagues: _p18._0.colleagues, showMenu: false, showSettings: false})
 								}),
 							{ctor: '[]'});
 					} else {
@@ -25913,7 +25914,7 @@ var _user$project$App$update = F2(
 								model,
 								{
 									currentView: _user$project$App$ColleaguesView(
-										{colleagues: _user$project$App$demoColleagues})
+										{colleagues: _user$project$App$demoColleagues, showMenu: false, showSettings: false})
 								}),
 							{ctor: '[]'});
 					}
@@ -25924,10 +25925,10 @@ var _user$project$App$update = F2(
 						{ctor: '[]'});
 				}
 			case 'AddColleague':
-				var _p13 = model.currentView;
-				if (_p13.ctor === 'ColleaguesView') {
-					var _p14 = A2(_elm_lang$core$Json_Decode$decodeValue, _user$project$App$colleagueListDecoder, _p7._0);
-					if (_p14.ctor === 'Ok') {
+				var _p19 = model.currentView;
+				if (_p19.ctor === 'ColleaguesView') {
+					var _p20 = A2(_elm_lang$core$Json_Decode$decodeValue, _user$project$App$colleagueListDecoder, _p8._0);
+					if (_p20.ctor === 'Ok') {
 						return A2(
 							_elm_lang$core$Platform_Cmd_ops['!'],
 							_elm_lang$core$Native_Utils.update(
@@ -25935,7 +25936,9 @@ var _user$project$App$update = F2(
 								{
 									currentView: _user$project$App$ColleaguesView(
 										{
-											colleagues: A2(_elm_lang$core$Basics_ops['++'], _p13._0.colleagues, _p14._0.colleagues)
+											colleagues: A2(_elm_lang$core$Basics_ops['++'], _p19._0.colleagues, _p20._0.colleagues),
+											showMenu: false,
+											showSettings: false
 										})
 								}),
 							{ctor: '[]'});
@@ -25946,7 +25949,7 @@ var _user$project$App$update = F2(
 								model,
 								{
 									currentView: _user$project$App$ColleaguesView(
-										{colleagues: _user$project$App$demoColleagues})
+										{colleagues: _user$project$App$demoColleagues, showMenu: false, showSettings: false})
 								}),
 							{ctor: '[]'});
 					}
@@ -25957,10 +25960,10 @@ var _user$project$App$update = F2(
 						{ctor: '[]'});
 				}
 			case 'Joined':
-				if (_p7._0 === 'user:all') {
+				if (_p8._0 === 'user:all') {
 					var debug = A2(_elm_lang$core$Debug$log, 'Joined Channel', 'user:all');
-					var _p15 = model.currentUser;
-					if (_p15.ctor === 'Nothing') {
+					var _p21 = model.currentUser;
+					if (_p21.ctor === 'Nothing') {
 						return A2(
 							_elm_lang$core$Platform_Cmd_ops['!'],
 							model,
@@ -25972,10 +25975,10 @@ var _user$project$App$update = F2(
 							{ctor: '[]'});
 					}
 				} else {
-					var _p18 = _p7._0;
-					var debug = A2(_elm_lang$core$Debug$log, 'Joined Channel', _p18);
-					var _p16 = model.currentUser;
-					if (_p16.ctor === 'Nothing') {
+					var _p24 = _p8._0;
+					var debug = A2(_elm_lang$core$Debug$log, 'Joined Channel', _p24);
+					var _p22 = model.currentUser;
+					if (_p22.ctor === 'Nothing') {
 						return A2(
 							_elm_lang$core$Platform_Cmd_ops['!'],
 							model,
@@ -25986,10 +25989,10 @@ var _user$project$App$update = F2(
 						var push_ = A2(
 							_fbonetti$elm_phoenix_socket$Phoenix_Push$withPayload,
 							payload,
-							A2(_fbonetti$elm_phoenix_socket$Phoenix_Push$init, 'load:data', _p18));
-						var _p17 = A2(_fbonetti$elm_phoenix_socket$Phoenix_Socket$push, push_, model.phxSocket);
-						var phxSocket = _p17._0;
-						var phxCmd = _p17._1;
+							A2(_fbonetti$elm_phoenix_socket$Phoenix_Push$init, 'load:data', _p24));
+						var _p23 = A2(_fbonetti$elm_phoenix_socket$Phoenix_Socket$push, push_, model.phxSocket);
+						var phxSocket = _p23._0;
+						var phxCmd = _p23._1;
 						return A2(
 							_elm_lang$core$Platform_Cmd_ops['!'],
 							_elm_lang$core$Native_Utils.update(
@@ -26003,15 +26006,15 @@ var _user$project$App$update = F2(
 					}
 				}
 			case 'Closed':
-				var debug = A2(_elm_lang$core$Debug$log, 'Closed Channel', _p7._0);
+				var debug = A2(_elm_lang$core$Debug$log, 'Closed Channel', _p8._0);
 				return A2(
 					_elm_lang$core$Platform_Cmd_ops['!'],
 					model,
 					{ctor: '[]'});
 			case 'PhoenixMsg':
-				var _p19 = A2(_fbonetti$elm_phoenix_socket$Phoenix_Socket$update, _p7._0, model.phxSocket);
-				var phxSocket = _p19._0;
-				var phxCmd = _p19._1;
+				var _p25 = A2(_fbonetti$elm_phoenix_socket$Phoenix_Socket$update, _p8._0, model.phxSocket);
+				var phxSocket = _p25._0;
+				var phxCmd = _p25._1;
 				return A2(
 					_elm_lang$core$Platform_Cmd_ops['!'],
 					_elm_lang$core$Native_Utils.update(
@@ -26023,14 +26026,14 @@ var _user$project$App$update = F2(
 						_1: {ctor: '[]'}
 					});
 			case 'SignUp':
-				var _p20 = model.currentView;
-				if (_p20.ctor === 'SignupView') {
+				var _p26 = model.currentView;
+				if (_p26.ctor === 'SignupView') {
 					return A2(
 						_elm_lang$core$Platform_Cmd_ops['!'],
 						model,
 						{
 							ctor: '::',
-							_0: _user$project$App$performSignupRequest(_p20._0),
+							_0: _user$project$App$performSignupRequest(_p26._0),
 							_1: {ctor: '[]'}
 						});
 				} else {
@@ -26040,16 +26043,44 @@ var _user$project$App$update = F2(
 						{ctor: '[]'});
 				}
 			case 'Login':
-				var _p21 = model.currentView;
-				if (_p21.ctor === 'LoginView') {
+				var _p27 = model.currentView;
+				if (_p27.ctor === 'LoginView') {
 					return A2(
 						_elm_lang$core$Platform_Cmd_ops['!'],
 						model,
 						{
 							ctor: '::',
-							_0: _user$project$App$performLoginRequest(_p21._0),
+							_0: _user$project$App$performLoginRequest(_p27._0),
 							_1: {ctor: '[]'}
 						});
+				} else {
+					return A2(
+						_elm_lang$core$Platform_Cmd_ops['!'],
+						model,
+						{ctor: '[]'});
+				}
+			case 'GoogleLogin':
+				var googleUser = A2(_elm_lang$core$Json_Decode$decodeValue, _user$project$App$googleUserDecoder, _p8._0);
+				var debug = A2(_elm_lang$core$Debug$log, 'Signed In with: ', googleUser);
+				var _p28 = model.currentView;
+				if (_p28.ctor === 'LoginView') {
+					var _p29 = googleUser;
+					if (_p29.ctor === 'Ok') {
+						return A2(
+							_elm_lang$core$Platform_Cmd_ops['!'],
+							model,
+							{
+								ctor: '::',
+								_0: _user$project$App$performLoginRequest(
+									A3(_user$project$App$LoginModel, _p29._0.email, '', '')),
+								_1: {ctor: '[]'}
+							});
+					} else {
+						return A2(
+							_elm_lang$core$Platform_Cmd_ops['!'],
+							model,
+							{ctor: '[]'});
+					}
 				} else {
 					return A2(
 						_elm_lang$core$Platform_Cmd_ops['!'],
@@ -26061,30 +26092,32 @@ var _user$project$App$update = F2(
 					_elm_lang$core$Platform_Cmd_ops['!'],
 					_elm_lang$core$Native_Utils.update(
 						model,
-						{currentView: _p7._0}),
+						{currentView: _p8._0}),
 					{ctor: '[]'});
 			case 'HandleLoginRequest':
-				if (_p7._0.ctor === 'Ok') {
+				if (_p8._0.ctor === 'Ok') {
 					return _user$project$App$connect(
 						_elm_lang$core$Native_Utils.update(
 							model,
 							{
-								currentUser: _elm_lang$core$Maybe$Just(_p7._0._0),
+								currentUser: _elm_lang$core$Maybe$Just(_p8._0._0),
 								currentView: _user$project$App$ColleaguesView(
 									{
-										colleagues: {ctor: '[]'}
+										colleagues: {ctor: '[]'},
+										showMenu: false,
+										showSettings: false
 									})
 							}));
 				} else {
-					var _p22 = model.currentView;
-					if (_p22.ctor === 'LoginView') {
+					var _p30 = model.currentView;
+					if (_p30.ctor === 'LoginView') {
 						return A2(
 							_elm_lang$core$Platform_Cmd_ops['!'],
 							_elm_lang$core$Native_Utils.update(
 								model,
 								{
 									currentView: _user$project$App$LoginView(
-										{email: _p22._0.email, password: _p22._0.password, error: 'Login failed'})
+										{email: _p30._0.email, password: _p30._0.password, error: 'Login failed'})
 								}),
 							{ctor: '[]'});
 					} else {
@@ -26095,27 +26128,29 @@ var _user$project$App$update = F2(
 					}
 				}
 			case 'HandleSignupRequest':
-				if (_p7._0.ctor === 'Ok') {
+				if (_p8._0.ctor === 'Ok') {
 					return _user$project$App$connect(
 						_elm_lang$core$Native_Utils.update(
 							model,
 							{
-								currentUser: _elm_lang$core$Maybe$Just(_p7._0._0),
+								currentUser: _elm_lang$core$Maybe$Just(_p8._0._0),
 								currentView: _user$project$App$ColleaguesView(
 									{
-										colleagues: {ctor: '[]'}
+										colleagues: {ctor: '[]'},
+										showMenu: false,
+										showSettings: false
 									})
 							}));
 				} else {
-					var _p23 = model.currentView;
-					if (_p23.ctor === 'SignupView') {
+					var _p31 = model.currentView;
+					if (_p31.ctor === 'SignupView') {
 						return A2(
 							_elm_lang$core$Platform_Cmd_ops['!'],
 							_elm_lang$core$Native_Utils.update(
 								model,
 								{
 									currentView: _user$project$App$SignupView(
-										{email: _p23._0.email, location: _p23._0.location, name: _p23._0.name, timezone: _p23._0.timezone, error: 'Signup failed'})
+										{email: _p31._0.email, location: _p31._0.location, name: _p31._0.name, timezone: _p31._0.timezone, error: 'Signup failed'})
 								}),
 							{ctor: '[]'});
 					} else {
@@ -26126,19 +26161,19 @@ var _user$project$App$update = F2(
 					}
 				}
 			case 'UpdateLogin':
-				var _p27 = _p7._1;
-				var _p24 = model.currentView;
-				if (_p24.ctor === 'LoginView') {
-					var _p26 = _p24._0.error;
-					var _p25 = _p7._0;
-					if (_p25.ctor === 'LoginEmail') {
+				var _p35 = _p8._1;
+				var _p32 = model.currentView;
+				if (_p32.ctor === 'LoginView') {
+					var _p34 = _p32._0.error;
+					var _p33 = _p8._0;
+					if (_p33.ctor === 'LoginEmail') {
 						return A2(
 							_elm_lang$core$Platform_Cmd_ops['!'],
 							_elm_lang$core$Native_Utils.update(
 								model,
 								{
 									currentView: _user$project$App$LoginView(
-										{email: _p27, password: _p24._0.password, error: _p26})
+										{email: _p35, password: _p32._0.password, error: _p34})
 								}),
 							{ctor: '[]'});
 					} else {
@@ -26148,7 +26183,7 @@ var _user$project$App$update = F2(
 								model,
 								{
 									currentView: _user$project$App$LoginView(
-										{email: _p24._0.email, password: _p27, error: _p26})
+										{email: _p32._0.email, password: _p35, error: _p34})
 								}),
 							{ctor: '[]'});
 					}
@@ -26159,16 +26194,16 @@ var _user$project$App$update = F2(
 						{ctor: '[]'});
 				}
 			case 'UpdateSignup':
-				var _p35 = _p7._1;
-				var _p28 = model.currentView;
-				if (_p28.ctor === 'SignupView') {
-					var _p34 = _p28._0.timezone;
-					var _p33 = _p28._0.name;
-					var _p32 = _p28._0.location;
-					var _p31 = _p28._0.error;
-					var _p30 = _p28._0.email;
-					var _p29 = _p7._0;
-					switch (_p29.ctor) {
+				var _p43 = _p8._1;
+				var _p36 = model.currentView;
+				if (_p36.ctor === 'SignupView') {
+					var _p42 = _p36._0.timezone;
+					var _p41 = _p36._0.name;
+					var _p40 = _p36._0.location;
+					var _p39 = _p36._0.error;
+					var _p38 = _p36._0.email;
+					var _p37 = _p8._0;
+					switch (_p37.ctor) {
 						case 'SignupEmail':
 							return A2(
 								_elm_lang$core$Platform_Cmd_ops['!'],
@@ -26176,7 +26211,7 @@ var _user$project$App$update = F2(
 									model,
 									{
 										currentView: _user$project$App$SignupView(
-											{email: _p35, location: _p32, name: _p33, timezone: _p34, error: _p31})
+											{email: _p43, location: _p40, name: _p41, timezone: _p42, error: _p39})
 									}),
 								{ctor: '[]'});
 						case 'SignupLocation':
@@ -26186,7 +26221,7 @@ var _user$project$App$update = F2(
 									model,
 									{
 										currentView: _user$project$App$SignupView(
-											{email: _p30, location: _p35, name: _p33, timezone: _p34, error: _p31})
+											{email: _p38, location: _p43, name: _p41, timezone: _p42, error: _p39})
 									}),
 								{ctor: '[]'});
 						case 'SignupName':
@@ -26196,7 +26231,7 @@ var _user$project$App$update = F2(
 									model,
 									{
 										currentView: _user$project$App$SignupView(
-											{email: _p30, location: _p32, name: _p35, timezone: _p34, error: _p31})
+											{email: _p38, location: _p40, name: _p43, timezone: _p42, error: _p39})
 									}),
 								{ctor: '[]'});
 						default:
@@ -26206,7 +26241,7 @@ var _user$project$App$update = F2(
 									model,
 									{
 										currentView: _user$project$App$SignupView(
-											{email: _p30, location: _p32, name: _p33, timezone: _p35, error: _p31})
+											{email: _p38, location: _p40, name: _p41, timezone: _p43, error: _p39})
 									}),
 								{ctor: '[]'});
 					}
@@ -26217,10 +26252,10 @@ var _user$project$App$update = F2(
 						{ctor: '[]'});
 				}
 			default:
-				if (_p7._0._0 === 'currentUser') {
-					var _p36 = A2(_elm_lang$core$Json_Decode$decodeValue, _elm_lang$core$Json_Decode$string, _p7._0._1);
-					if (_p36.ctor === 'Ok') {
-						var loginModel = {email: _p36._0, password: '', error: ''};
+				if (_p8._0._0 === 'currentUser') {
+					var _p44 = A2(_elm_lang$core$Json_Decode$decodeValue, _elm_lang$core$Json_Decode$string, _p8._0._1);
+					if (_p44.ctor === 'Ok') {
+						var loginModel = {email: _p44._0, password: '', error: ''};
 						return A2(
 							_elm_lang$core$Platform_Cmd_ops['!'],
 							_elm_lang$core$Native_Utils.update(
@@ -26261,7 +26296,11 @@ var _user$project$App$subscriptions = function (model) {
 				_1: {
 					ctor: '::',
 					_0: _user$project$Ports_LocalStorage$storageGetItemResponse(_user$project$App$ReceiveFromLocalStorage),
-					_1: {ctor: '[]'}
+					_1: {
+						ctor: '::',
+						_0: _user$project$Ports_Google$onLogin(_user$project$App$GoogleLogin),
+						_1: {ctor: '[]'}
+					}
 				}
 			}
 		});
@@ -26277,18 +26316,18 @@ var _user$project$App$User = function (a) {
 	return {ctor: 'User', _0: a};
 };
 var _user$project$App$resolveTimezone = function (name) {
-	var _p37 = _Bogdanp$elm_time$Time_TimeZones$fromName(name);
-	if (_p37.ctor === 'Nothing') {
+	var _p45 = _Bogdanp$elm_time$Time_TimeZones$fromName(name);
+	if (_p45.ctor === 'Nothing') {
 		return _user$project$App$Default(
 			_Bogdanp$elm_time$Time_TimeZones$utc(
 				{ctor: '_Tuple0'}));
 	} else {
-		return _user$project$App$User(_p37._0);
+		return _user$project$App$User(_p45._0);
 	}
 };
 var _user$project$App$person = F2(
 	function (time, person) {
-		var meeting = _elm_lang$core$Native_Utils.eq(person.name, 'Richard Feldman');
+		var meeting = false;
 		var userIntervals = person.workingHours.blocks;
 		var theirTimezone = _user$project$App$resolvedTimezone(
 			_user$project$App$resolveTimezone(person.workingHours.timezone));
@@ -26301,9 +26340,9 @@ var _user$project$App$person = F2(
 		var working = A2(
 			_elm_lang$core$List$any,
 			function (block) {
-				var _p38 = nowTimeTuple;
-				var nowHour = _p38._0;
-				var nowMinute = _p38._1;
+				var _p46 = nowTimeTuple;
+				var nowHour = _p46._0;
+				var nowMinute = _p46._1;
 				var endWork = block.end;
 				var beforeEnd = (_elm_lang$core$Native_Utils.cmp(nowHour, endWork.hour) < 0) || (_elm_lang$core$Native_Utils.eq(nowHour, endWork.hour) && (_elm_lang$core$Native_Utils.cmp(nowMinute, endWork.minute) < 0));
 				var startWork = block.start;
@@ -26401,8 +26440,8 @@ var _user$project$App$person = F2(
 				}
 			});
 	});
-var _user$project$App$zoneColumn = F3(
-	function (time, colleagues, zone) {
+var _user$project$App$zoneColumn = F4(
+	function (localzone, time, colleagues, zone) {
 		var people = A2(
 			_elm_lang$core$List$filter,
 			function (colleague) {
@@ -26450,15 +26489,15 @@ var _user$project$App$zoneColumn = F3(
 					people)));
 	});
 var _user$project$App$modelToView = function (model) {
-	var _p39 = model.currentView;
-	if (_p39.ctor === 'ColleaguesView') {
-		var _p40 = model.currentUser;
-		if (_p40.ctor === 'Nothing') {
+	var _p47 = model.currentView;
+	if (_p47.ctor === 'ColleaguesView') {
+		var _p48 = model.currentUser;
+		if (_p48.ctor === 'Nothing') {
 			return _elm_lang$core$Maybe$Nothing;
 		} else {
-			var _p41 = _p40._0;
+			var _p49 = _p48._0;
 			var userTimezone = _user$project$App$resolvedTimezone(
-				_user$project$App$resolveTimezone(_p41.timezone));
+				_user$project$App$resolveTimezone(_p49.timezone));
 			var timezones = A2(
 				_elm_lang$core$List$map,
 				_user$project$App$resolveTimezone,
@@ -26467,11 +26506,11 @@ var _user$project$App$modelToView = function (model) {
 					function (_) {
 						return _.timezone;
 					},
-					_p39._0.colleagues));
+					_p47._0.colleagues));
 			return _elm_lang$core$Maybe$Just(
 				{
-					userName: _p41.name,
-					userEmail: _p41.email,
+					userName: _p49.name,
+					userEmail: _p49.email,
 					userTimezone: userTimezone,
 					localtime: A2(_user$project$App$localtime, userTimezone, model.now),
 					timezones: timezones
@@ -26484,22 +26523,23 @@ var _user$project$App$modelToView = function (model) {
 var _user$project$App$colleagueView = F2(
 	function (model, colleagueModel) {
 		var maybeViewModel = _user$project$App$modelToView(model);
-		var _p42 = maybeViewModel;
-		if (_p42.ctor === 'Nothing') {
+		var _p50 = maybeViewModel;
+		if (_p50.ctor === 'Nothing') {
 			return A2(
 				_elm_lang$html$Html$div,
 				{ctor: '[]'},
 				{ctor: '[]'});
 		} else {
-			var _p43 = _p42._0;
+			var _p51 = _p50._0;
 			var offsets = A2(
 				_elm_lang$core$List$sortWith,
-				_user$project$App$timezoneComparison,
+				_user$project$App$timezoneComparison(
+					_Bogdanp$elm_time$Time_ZonedDateTime$toTimestamp(_p51.localtime)),
 				A2(
 					_elm_community$list_extra$List_Extra$uniqueBy,
 					_Bogdanp$elm_time$Time_TimeZone$abbreviation(
-						_Bogdanp$elm_time$Time_ZonedDateTime$toTimestamp(_p43.localtime)),
-					A2(_elm_lang$core$List$map, _user$project$App$resolvedTimezone, _p43.timezones)));
+						_Bogdanp$elm_time$Time_ZonedDateTime$toTimestamp(_p51.localtime)),
+					A2(_elm_lang$core$List$map, _user$project$App$resolvedTimezone, _p51.timezones)));
 			return A2(
 				_elm_lang$html$Html$div,
 				{
@@ -26549,7 +26589,7 @@ var _user$project$App$colleagueView = F2(
 									{
 										ctor: '::',
 										_0: _elm_lang$html$Html$text(
-											A2(_user$project$App$formatTimeZone, _p43.localtime, _p43.userTimezone)),
+											A2(_user$project$App$formatTimeZone, _p51.localtime, _p51.userTimezone)),
 										_1: {ctor: '[]'}
 									}),
 								_1: {
@@ -26561,7 +26601,7 @@ var _user$project$App$colleagueView = F2(
 											_0: _elm_lang$html$Html_Attributes$class('user'),
 											_1: {
 												ctor: '::',
-												_0: _elm_lang$html$Html_Events$onClick(_user$project$App$Logout),
+												_0: _elm_lang$html$Html_Events$onClick(_user$project$App$ToggleMenu),
 												_1: {ctor: '[]'}
 											}
 										},
@@ -26572,7 +26612,7 @@ var _user$project$App$colleagueView = F2(
 												{ctor: '[]'},
 												{
 													ctor: '::',
-													_0: _elm_lang$html$Html$text(_p43.userName),
+													_0: _elm_lang$html$Html$text(_p51.userName),
 													_1: {ctor: '[]'}
 												}),
 											_1: {
@@ -26582,7 +26622,7 @@ var _user$project$App$colleagueView = F2(
 													{
 														ctor: '::',
 														_0: _elm_lang$html$Html_Attributes$src(
-															_user$project$App$gravatarUrl(_p43.userEmail)),
+															_user$project$App$gravatarUrl(_p51.userEmail)),
 														_1: {
 															ctor: '::',
 															_0: _elm_lang$html$Html_Attributes$width(30),
@@ -26616,14 +26656,173 @@ var _user$project$App$colleagueView = F2(
 									_elm_lang$html$Html$div,
 									{
 										ctor: '::',
-										_0: _elm_lang$html$Html_Attributes$class('timezones'),
+										_0: _elm_lang$html$Html_Attributes$classList(
+											{
+												ctor: '::',
+												_0: {ctor: '_Tuple2', _0: 'optional', _1: true},
+												_1: {
+													ctor: '::',
+													_0: {ctor: '_Tuple2', _0: 'animated', _1: true},
+													_1: {
+														ctor: '::',
+														_0: {ctor: '_Tuple2', _0: 'slideInDown', _1: colleagueModel.showMenu},
+														_1: {
+															ctor: '::',
+															_0: {ctor: '_Tuple2', _0: 'slideOutUp', _1: !colleagueModel.showMenu},
+															_1: {ctor: '[]'}
+														}
+													}
+												}
+											}),
 										_1: {ctor: '[]'}
 									},
-									A2(
-										_elm_lang$core$List$map,
-										A2(_user$project$App$zoneColumn, _p43.localtime, colleagueModel.colleagues),
-										offsets)),
-								_1: {ctor: '[]'}
+									{
+										ctor: '::',
+										_0: A2(
+											_elm_lang$html$Html$div,
+											{
+												ctor: '::',
+												_0: _elm_lang$html$Html_Attributes$class('menu'),
+												_1: {ctor: '[]'}
+											},
+											{
+												ctor: '::',
+												_0: A2(
+													_elm_lang$html$Html$ul,
+													{ctor: '[]'},
+													{
+														ctor: '::',
+														_0: A2(
+															_elm_lang$html$Html$li,
+															{ctor: '[]'},
+															{
+																ctor: '::',
+																_0: _elm_lang$html$Html$text('Setup your typical working hours'),
+																_1: {ctor: '[]'}
+															}),
+														_1: {
+															ctor: '::',
+															_0: A2(
+																_elm_lang$html$Html$li,
+																{
+																	ctor: '::',
+																	_0: _elm_lang$html$Html_Attributes$class('spacer'),
+																	_1: {ctor: '[]'}
+																},
+																{ctor: '[]'}),
+															_1: {
+																ctor: '::',
+																_0: A2(
+																	_elm_lang$html$Html$li,
+																	{ctor: '[]'},
+																	{
+																		ctor: '::',
+																		_0: A2(
+																			_elm_lang$html$Html$button,
+																			{
+																				ctor: '::',
+																				_0: _elm_lang$html$Html_Events$onClick(_user$project$App$Logout),
+																				_1: {ctor: '[]'}
+																			},
+																			{
+																				ctor: '::',
+																				_0: _elm_lang$html$Html$text('Logout'),
+																				_1: {ctor: '[]'}
+																			}),
+																		_1: {ctor: '[]'}
+																	}),
+																_1: {ctor: '[]'}
+															}
+														}
+													}),
+												_1: {ctor: '[]'}
+											}),
+										_1: {
+											ctor: '::',
+											_0: A2(
+												_elm_lang$html$Html$div,
+												{ctor: '[]'},
+												{
+													ctor: '::',
+													_0: A2(
+														_elm_lang$html$Html$div,
+														{
+															ctor: '::',
+															_0: _elm_lang$html$Html_Attributes$class('day'),
+															_1: {ctor: '[]'}
+														},
+														{
+															ctor: '::',
+															_0: A2(
+																_elm_lang$html$Html$div,
+																{
+																	ctor: '::',
+																	_0: _elm_lang$html$Html_Attributes$class('startday'),
+																	_1: {ctor: '[]'}
+																},
+																{ctor: '[]'}),
+															_1: {
+																ctor: '::',
+																_0: A2(
+																	_elm_lang$html$Html$div,
+																	{
+																		ctor: '::',
+																		_0: _elm_lang$html$Html_Attributes$class('block'),
+																		_1: {ctor: '[]'}
+																	},
+																	{ctor: '[]'}),
+																_1: {
+																	ctor: '::',
+																	_0: A2(
+																		_elm_lang$html$Html$div,
+																		{ctor: '[]'},
+																		{ctor: '[]'}),
+																	_1: {
+																		ctor: '::',
+																		_0: A2(
+																			_elm_lang$html$Html$div,
+																			{
+																				ctor: '::',
+																				_0: _elm_lang$html$Html_Attributes$class('block'),
+																				_1: {ctor: '[]'}
+																			},
+																			{ctor: '[]'}),
+																		_1: {
+																			ctor: '::',
+																			_0: A2(
+																				_elm_lang$html$Html$div,
+																				{
+																					ctor: '::',
+																					_0: _elm_lang$html$Html_Attributes$class('endday'),
+																					_1: {ctor: '[]'}
+																				},
+																				{ctor: '[]'}),
+																			_1: {ctor: '[]'}
+																		}
+																	}
+																}
+															}
+														}),
+													_1: {ctor: '[]'}
+												}),
+											_1: {ctor: '[]'}
+										}
+									}),
+								_1: {
+									ctor: '::',
+									_0: A2(
+										_elm_lang$html$Html$div,
+										{
+											ctor: '::',
+											_0: _elm_lang$html$Html_Attributes$class('timezones'),
+											_1: {ctor: '[]'}
+										},
+										A2(
+											_elm_lang$core$List$map,
+											A3(_user$project$App$zoneColumn, _p51.userTimezone, _p51.localtime, colleagueModel.colleagues),
+											offsets)),
+									_1: {ctor: '[]'}
+								}
 							}),
 						_1: {ctor: '[]'}
 					}
@@ -26631,14 +26830,14 @@ var _user$project$App$colleagueView = F2(
 		}
 	});
 var _user$project$App$view = function (model) {
-	var _p44 = model.currentView;
-	switch (_p44.ctor) {
+	var _p52 = model.currentView;
+	switch (_p52.ctor) {
 		case 'LoginView':
-			return _user$project$App$loginView(_p44._0);
+			return _user$project$App$loginView(_p52._0);
 		case 'SignupView':
-			return _user$project$App$signupView(_p44._0);
+			return _user$project$App$signupView(_p52._0);
 		default:
-			return A2(_user$project$App$colleagueView, model, _p44._0);
+			return A2(_user$project$App$colleagueView, model, _p52._0);
 	}
 };
 var _user$project$App$main = _elm_lang$html$Html$program(
@@ -26652,7 +26851,7 @@ var _user$project$App$main = _elm_lang$html$Html$program(
 var Elm = {};
 Elm['App'] = Elm['App'] || {};
 if (typeof _user$project$App$main !== 'undefined') {
-    _user$project$App$main(Elm['App'], 'App', {"types":{"unions":{"Dict.LeafColor":{"args":[],"tags":{"LBBlack":[],"LBlack":[]}},"Json.Encode.Value":{"args":[],"tags":{"Value":[]}},"App.SignupField":{"args":[],"tags":{"SignupTimezone":[],"SignupName":[],"SignupEmail":[],"SignupLocation":[]}},"Dict.Dict":{"args":["k","v"],"tags":{"RBNode_elm_builtin":["Dict.NColor","k","v","Dict.Dict k v","Dict.Dict k v"],"RBEmpty_elm_builtin":["Dict.LeafColor"]}},"App.Msg":{"args":[],"tags":{"UpdateSignup":["App.SignupField","String"],"Logout":[],"ShowDetail":["Bool","App.Person"],"Closed":["String"],"Tick":["Time.Time"],"HandleSignupRequest":["Result.Result Http.Error App.Person"],"SelectView":["App.View"],"LoadData":["Json.Encode.Value"],"SignUp":[],"AddColleague":["Json.Encode.Value"],"ReceiveFromLocalStorage":["( Ports.LocalStorage.Key, Ports.LocalStorage.Value )"],"PhoenixMsg":["Phoenix.Socket.Msg App.Msg"],"UpdateLogin":["App.LoginField","String"],"HandleLoginRequest":["Result.Result Http.Error App.Person"],"Joined":["String"],"Login":[]}},"Dict.NColor":{"args":[],"tags":{"BBlack":[],"Red":[],"NBlack":[],"Black":[]}},"App.View":{"args":[],"tags":{"SignupView":["App.SignupModel"],"LoginView":["App.LoginModel"],"ColleaguesView":["App.ColleagueModel"]}},"Http.Error":{"args":[],"tags":{"BadUrl":["String"],"NetworkError":[],"Timeout":[],"BadStatus":["Http.Response String"],"BadPayload":["String","Http.Response String"]}},"Result.Result":{"args":["error","value"],"tags":{"Ok":["value"],"Err":["error"]}},"App.LoginField":{"args":[],"tags":{"LoginPassword":[],"LoginEmail":[]}},"Phoenix.Socket.Msg":{"args":["msg"],"tags":{"ChannelErrored":["String"],"ChannelClosed":["String"],"ExternalMsg":["msg"],"ChannelJoined":["String"],"Heartbeat":["Time.Time"],"NoOp":[],"ReceiveReply":["String","Int"]}}},"aliases":{"App.ColleagueModel":{"args":[],"type":"{ colleagues : List App.Person }"},"App.Person":{"args":[],"type":"{ name : String , email : String , location : String , timezone : String , workingHours : App.WorkingHours , displayName : Bool }"},"Http.Response":{"args":["body"],"type":"{ url : String , status : { code : Int, message : String } , headers : Dict.Dict String String , body : body }"},"Ports.LocalStorage.Value":{"args":[],"type":"Json.Encode.Value"},"App.TimeBlock":{"args":[],"type":"{ start : App.SimpleTime, end : App.SimpleTime }"},"App.SignupModel":{"args":[],"type":"{ email : String , location : String , name : String , timezone : String , error : String }"},"App.SimpleTime":{"args":[],"type":"{ hour : Int, minute : Int }"},"App.WorkingHours":{"args":[],"type":"{ timezone : String, blocks : List App.TimeBlock }"},"App.LoginModel":{"args":[],"type":"{ email : String, password : String, error : String }"},"Time.Time":{"args":[],"type":"Float"},"Ports.LocalStorage.Key":{"args":[],"type":"String"}},"message":"App.Msg"},"versions":{"elm":"0.18.0"}});
+    _user$project$App$main(Elm['App'], 'App', {"types":{"unions":{"Dict.LeafColor":{"args":[],"tags":{"LBBlack":[],"LBlack":[]}},"Json.Encode.Value":{"args":[],"tags":{"Value":[]}},"App.SignupField":{"args":[],"tags":{"SignupTimezone":[],"SignupName":[],"SignupEmail":[],"SignupLocation":[]}},"Dict.Dict":{"args":["k","v"],"tags":{"RBNode_elm_builtin":["Dict.NColor","k","v","Dict.Dict k v","Dict.Dict k v"],"RBEmpty_elm_builtin":["Dict.LeafColor"]}},"App.Msg":{"args":[],"tags":{"UpdateSignup":["App.SignupField","String"],"ToggleSettings":[],"Logout":[],"ShowDetail":["Bool","App.Person"],"Closed":["String"],"Tick":["Time.Time"],"HandleSignupRequest":["Result.Result Http.Error App.Person"],"SelectView":["App.View"],"LoadData":["Json.Encode.Value"],"SignUp":[],"AddColleague":["Json.Encode.Value"],"ReceiveFromLocalStorage":["( Ports.LocalStorage.Key, Ports.LocalStorage.Value )"],"ToggleMenu":[],"PhoenixMsg":["Phoenix.Socket.Msg App.Msg"],"UpdateLogin":["App.LoginField","String"],"GoogleLogin":["Json.Encode.Value"],"HandleLoginRequest":["Result.Result Http.Error App.Person"],"Joined":["String"],"Login":[]}},"Dict.NColor":{"args":[],"tags":{"BBlack":[],"Red":[],"NBlack":[],"Black":[]}},"App.View":{"args":[],"tags":{"SignupView":["App.SignupModel"],"LoginView":["App.LoginModel"],"ColleaguesView":["App.ColleagueModel"]}},"Http.Error":{"args":[],"tags":{"BadUrl":["String"],"NetworkError":[],"Timeout":[],"BadStatus":["Http.Response String"],"BadPayload":["String","Http.Response String"]}},"Result.Result":{"args":["error","value"],"tags":{"Ok":["value"],"Err":["error"]}},"App.LoginField":{"args":[],"tags":{"LoginPassword":[],"LoginEmail":[]}},"Phoenix.Socket.Msg":{"args":["msg"],"tags":{"ChannelErrored":["String"],"ChannelClosed":["String"],"ExternalMsg":["msg"],"ChannelJoined":["String"],"Heartbeat":["Time.Time"],"NoOp":[],"ReceiveReply":["String","Int"]}}},"aliases":{"App.ColleagueModel":{"args":[],"type":"{ colleagues : List App.Person , showMenu : Bool , showSettings : Bool }"},"App.Person":{"args":[],"type":"{ name : String , email : String , location : String , timezone : String , workingHours : App.WorkingHours , displayName : Bool }"},"Http.Response":{"args":["body"],"type":"{ url : String , status : { code : Int, message : String } , headers : Dict.Dict String String , body : body }"},"Ports.LocalStorage.Value":{"args":[],"type":"Json.Encode.Value"},"App.TimeBlock":{"args":[],"type":"{ start : App.SimpleTime, end : App.SimpleTime }"},"App.SignupModel":{"args":[],"type":"{ email : String , location : String , name : String , timezone : String , error : String }"},"App.SimpleTime":{"args":[],"type":"{ hour : Int, minute : Int }"},"App.WorkingHours":{"args":[],"type":"{ timezone : String, blocks : List App.TimeBlock }"},"App.LoginModel":{"args":[],"type":"{ email : String, password : String, error : String }"},"Time.Time":{"args":[],"type":"Float"},"Ports.LocalStorage.Key":{"args":[],"type":"String"}},"message":"App.Msg"},"versions":{"elm":"0.18.0"}});
 }
 
 if (typeof define === "function" && define['amd'])
